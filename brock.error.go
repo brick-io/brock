@@ -1,16 +1,12 @@
 package brock
 
-type localError string
-
-func (err localError) Error() string { return Sprintf("brock: %s", err) }
-
-const (
-	ErrRequestCancelled   = localError("brock: http: request cancelled")
-	ErrEmptyResponse      = localError("brock: http: empty response")
-	ErrInvalidArguments   = localError("brock: sql: invalid arguments for scan")
-	ErrInvalidTransaction = localError("brock: sql: invalid transaction")
-	ErrNoColumns          = localError("brock: sql: no columns returned")
-	ErrUnimplemented      = localError("brock: unimplemented")
+var (
+	ErrRequestCancelled   = Errorf("brock: http: request cancelled")
+	ErrEmptyResponse      = Errorf("brock: http: empty response")
+	ErrInvalidArguments   = Errorf("brock: sql: invalid arguments for scan")
+	ErrInvalidTransaction = Errorf("brock: sql: invalid transaction")
+	ErrNoColumns          = Errorf("brock: sql: no columns returned")
+	ErrUnimplemented      = Errorf("brock: unimplemented")
 )
 
 type SQLMismatchColumnsError struct{ Col, Dst int }
