@@ -19,8 +19,10 @@ type (
 	Scanner   = fmt.Scanner
 )
 
-//nolint: gochecknoglobals
+// nolint: gochecknoglobals
 var (
+	NonNil = struct{}{}
+
 	Errorf = fmt.Errorf
 	Error  = errors.New
 

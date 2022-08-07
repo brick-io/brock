@@ -21,74 +21,74 @@ type Parser interface {
 	NewDecoder(r io.Reader) Decoder
 }
 
-//nolint: gochecknoglobals
+// nolint: gochecknoglobals
 var (
 	// JSON
-	JSON Parser = brock_json{json.ConfigFastest}
+	JSON Parser = _json{json.ConfigFastest}
 	// XML
-	XML Parser = brock_xml{}
+	XML Parser = _xml{}
 	// YAML
-	YAML Parser = brock_yaml{}
+	YAML Parser = _yaml{}
 	// TOML
-	TOML Parser = brock_toml{}
+	TOML Parser = _toml{}
 )
 
 // =============================================================================
 
-// brock_json implementation.
-type brock_json struct{ json.API }
+// _json implementation.
+type _json struct{ json.API }
 
-func (json brock_json) NewDecoder(r io.Reader) Decoder { return json.API.NewDecoder(r) }
+func (json _json) NewDecoder(r io.Reader) Decoder { return json.API.NewDecoder(r) }
 
-func (json brock_json) NewEncoder(w io.Writer) Encoder { return json.API.NewEncoder(w) }
+func (json _json) NewEncoder(w io.Writer) Encoder { return json.API.NewEncoder(w) }
 
 // =============================================================================
 
 type XMLName = xml.Name
 
-// brock_xml implementation.
-type brock_xml struct{}
+// _xml implementation.
+type _xml struct{}
 
-func (brock_xml) Marshal(v any) ([]byte, error) { return xml.Marshal(v) }
+func (_xml) Marshal(v any) ([]byte, error) { return xml.Marshal(v) }
 
-func (brock_xml) Unmarshal(data []byte, v any) error { return xml.Unmarshal(data, v) }
+func (_xml) Unmarshal(data []byte, v any) error { return xml.Unmarshal(data, v) }
 
-func (brock_xml) NewEncoder(w io.Writer) Encoder { return xml.NewEncoder(w) }
+func (_xml) NewEncoder(w io.Writer) Encoder { return xml.NewEncoder(w) }
 
-func (brock_xml) NewDecoder(r io.Reader) Decoder { return xml.NewDecoder(r) }
-
-// =============================================================================
-
-// brock_yaml implementation.
-type brock_yaml struct{}
-
-func (brock_yaml) Marshal(v any) ([]byte, error) { return yaml.Marshal(v) }
-
-func (brock_yaml) Unmarshal(data []byte, v any) error { return yaml.Unmarshal(data, v) }
-
-func (brock_yaml) NewEncoder(w io.Writer) Encoder { return yaml.NewEncoder(w) }
-
-func (brock_yaml) NewDecoder(r io.Reader) Decoder { return yaml.NewDecoder(r) }
+func (_xml) NewDecoder(r io.Reader) Decoder { return xml.NewDecoder(r) }
 
 // =============================================================================
 
-// brock_toml implementation.
-type brock_toml struct{ r io.Reader }
+// _yaml implementation.
+type _yaml struct{}
 
-func (brock_toml) Marshal(v any) ([]byte, error) {
+func (_yaml) Marshal(v any) ([]byte, error) { return yaml.Marshal(v) }
+
+func (_yaml) Unmarshal(data []byte, v any) error { return yaml.Unmarshal(data, v) }
+
+func (_yaml) NewEncoder(w io.Writer) Encoder { return yaml.NewEncoder(w) }
+
+func (_yaml) NewDecoder(r io.Reader) Decoder { return yaml.NewDecoder(r) }
+
+// =============================================================================
+
+// _toml implementation.
+type _toml struct{ r io.Reader }
+
+func (_toml) Marshal(v any) ([]byte, error) {
 	b := new(bytes.Buffer)
 	err := toml.NewEncoder(b).Encode(v)
 
 	return b.Bytes(), err
 }
 
-func (brock_toml) Unmarshal(data []byte, v any) error { return toml.Unmarshal(data, v) }
+func (_toml) Unmarshal(data []byte, v any) error { return toml.Unmarshal(data, v) }
 
-func (brock_toml) NewEncoder(w io.Writer) Encoder { return toml.NewEncoder(w) }
+func (_toml) NewEncoder(w io.Writer) Encoder { return toml.NewEncoder(w) }
 
-func (brock_toml) NewDecoder(r io.Reader) Decoder { return brock_toml{r} }
+func (_toml) NewDecoder(r io.Reader) Decoder { return _toml{r} }
 
-func (t brock_toml) Decode(v any) error {
+func (t _toml) Decode(v any) error {
 	if p, err := io.ReadAll(t.r); err != nil {
 		return err
 	} else {

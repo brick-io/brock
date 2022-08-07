@@ -8,11 +8,11 @@ import (
 	"sync"
 )
 
-var SQL brock_sql
+var SQL _sql
 
-type brock_sql struct {
-	Box    brock_sql_box
-	Helper brock_sql_helper
+type _sql struct {
+	Box    _sql_box
+	Helper _sql_helper
 }
 
 type (
@@ -52,16 +52,17 @@ type SQLTxConn interface {
 	QueryRowContext
 }
 
-func (brock_sql) Discard() any { return new([]byte) }
+func (_sql) Discard() any { return new([]byte) }
 
-type brock_sql_box struct{}
+type _sql_box struct{}
 
 // =============================================================================
 
 // Exec will wrap `ExecContext` so that we can Scan later
-//  Exec(cmd.ExecContext(ctx, "..."))
-func (brock_sql_box) Exec(val sql.Result, err error) SQLBoxExec {
-	return brock_sql_box_exec{val, err}
+//
+//	Exec(cmd.ExecContext(ctx, "..."))
+func (_sql_box) Exec(val sql.Result, err error) SQLBoxExec {
+	return _sql_box_exec{val, err}
 }
 
 type SQLBoxExec interface {
@@ -70,12 +71,12 @@ type SQLBoxExec interface {
 	Scan(rowsAffected *int, lastInsertID *int) error
 }
 
-type brock_sql_box_exec struct {
+type _sql_box_exec struct {
 	res sql.Result
 	err error
 }
 
-func (x brock_sql_box_exec) Scan(rowsAffected *int, lastInsertID *int) error {
+func (x _sql_box_exec) Scan(rowsAffected *int, lastInsertID *int) error {
 	n, err := int64(0), x.err
 	if err != nil {
 		return err
@@ -105,9 +106,10 @@ func (x brock_sql_box_exec) Scan(rowsAffected *int, lastInsertID *int) error {
 // =============================================================================
 
 // Query will wrap `QueryContext` so that we can Scan later
-//  Query(cmd.QueryContext(ctx, "..."))
-func (brock_sql_box) Query(val *sql.Rows, err error) SQLBoxQuery {
-	return brock_sql_box_query{val, err}
+//
+//	Query(cmd.QueryContext(ctx, "..."))
+func (_sql_box) Query(val *sql.Rows, err error) SQLBoxQuery {
+	return _sql_box_query{val, err}
 }
 
 type SQLBoxQuery interface {
@@ -119,12 +121,12 @@ type SQLBoxQuery interface {
 	Scan(row func(i int) (pointers []any)) error
 }
 
-type brock_sql_box_query struct {
+type _sql_box_query struct {
 	res *sql.Rows
 	err error
 }
 
-func (x brock_sql_box_query) Scan(row func(i int) []any) error {
+func (x _sql_box_query) Scan(row func(i int) []any) error {
 	err := x.err
 	if err != nil {
 		return err
@@ -169,9 +171,10 @@ func (x brock_sql_box_query) Scan(row func(i int) []any) error {
 // =============================================================================
 
 // Query will wrap `QueryContext` so that we can Scan later
-//  Query(cmd.QueryContext(ctx, "..."))
-func (brock_sql_box) QueryRow(val *sql.Row, err error) SQLBoxQueryRow {
-	return brock_sql_box_query_row{val, err}
+//
+//	Query(cmd.QueryContext(ctx, "..."))
+func (_sql_box) QueryRow(val *sql.Row, err error) SQLBoxQueryRow {
+	return _sql_box_query_row{val, err}
 }
 
 type SQLBoxQueryRow interface {
@@ -179,16 +182,16 @@ type SQLBoxQueryRow interface {
 	Err() error
 }
 
-type brock_sql_box_query_row struct {
+type _sql_box_query_row struct {
 	res *sql.Row
 	err error
 }
 
-func (x brock_sql_box_query_row) Scan(dest ...any) error {
+func (x _sql_box_query_row) Scan(dest ...any) error {
 	return x.res.Scan(dest...)
 }
 
-func (x brock_sql_box_query_row) Err() error {
+func (x _sql_box_query_row) Err() error {
 	if x.err == nil {
 		x.err = x.res.Err()
 	}
@@ -199,11 +202,12 @@ func (x brock_sql_box_query_row) Err() error {
 // =============================================================================
 
 // Transaction will wrap `Begin` so that we can Wrap later
-//  Transaction(db.BeginTx(ctx, ...))
+//
+//	Transaction(db.BeginTx(ctx, ...))
 //
 // Wrap the transaction and ends it with either COMMIT or ROLLBACK
-func (brock_sql_box) Transaction(val *sql.Tx, err error) SQLBoxTransaction {
-	return &brock_sql_box_begin_tx{new(sync.Once), val, err}
+func (_sql_box) Transaction(val *sql.Tx, err error) SQLBoxTransaction {
+	return &_sql_box_begin_tx{new(sync.Once), val, err}
 }
 
 type SQLBoxTransaction interface {
@@ -211,13 +215,13 @@ type SQLBoxTransaction interface {
 	Wrap(tx func() error) error
 }
 
-type brock_sql_box_begin_tx struct {
+type _sql_box_begin_tx struct {
 	once *sync.Once
 	res  *sql.Tx
 	err  error
 }
 
-func (x brock_sql_box_begin_tx) Wrap(tx func() error) error {
+func (x _sql_box_begin_tx) Wrap(tx func() error) error {
 	if x.err != nil {
 		return x.err
 	}
@@ -241,7 +245,7 @@ func (x brock_sql_box_begin_tx) Wrap(tx func() error) error {
 
 // =============================================================================
 
-func (brock_sql) RoundRobin(conns ...SQLConn) SQLConn {
+func (_sql) RoundRobin(conns ...SQLConn) SQLConn {
 	conns_ := make([]SQLConn, 0)
 	for _, v := range conns {
 		if v != nil {
@@ -249,16 +253,16 @@ func (brock_sql) RoundRobin(conns ...SQLConn) SQLConn {
 		}
 	}
 
-	return &brock_sql_roundrobin{conns_, 0, new(sync.Mutex)}
+	return &_sql_roundrobin{conns_, 0, new(sync.Mutex)}
 }
 
-type brock_sql_roundrobin struct {
+type _sql_roundrobin struct {
 	conns []SQLConn
 	index int
 	mutex *sync.Mutex
 }
 
-func (x *brock_sql_roundrobin) conn(i int) (SQLConn, error) {
+func (x *_sql_roundrobin) conn(i int) (SQLConn, error) {
 	l := len(x.conns)
 	switch {
 	case l == 1: // only one
@@ -283,7 +287,7 @@ func (x *brock_sql_roundrobin) conn(i int) (SQLConn, error) {
 	return x.conns[x.index], nil
 }
 
-func (x *brock_sql_roundrobin) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+func (x *_sql_roundrobin) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
 	conn, err := x.conn(0)
 	if err != nil {
 		return nil, err
@@ -293,7 +297,7 @@ func (x *brock_sql_roundrobin) BeginTx(ctx context.Context, opts *sql.TxOptions)
 }
 
 // Close all databases.
-func (x *brock_sql_roundrobin) Close() error {
+func (x *_sql_roundrobin) Close() error {
 	errs := make([]error, 0)
 	for i := range x.conns {
 		errs = append(errs, x.conns[i].Close())
@@ -303,7 +307,7 @@ func (x *brock_sql_roundrobin) Close() error {
 }
 
 // PingContext all databases.
-func (x *brock_sql_roundrobin) PingContext(ctx context.Context) error {
+func (x *_sql_roundrobin) PingContext(ctx context.Context) error {
 	errs := make([]error, 0)
 	for i := range x.conns {
 		errs = append(errs, x.conns[i].PingContext(ctx))
@@ -312,20 +316,20 @@ func (x *brock_sql_roundrobin) PingContext(ctx context.Context) error {
 	return Errors(errs...)
 }
 
-func (x *brock_sql_roundrobin) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+func (x *_sql_roundrobin) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return nil, ErrUnimplemented
 }
-func (x *brock_sql_roundrobin) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+func (x *_sql_roundrobin) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	return nil, ErrUnimplemented
 }
-func (x *brock_sql_roundrobin) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+func (x *_sql_roundrobin) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	return nil, ErrUnimplemented
 }
-func (x *brock_sql_roundrobin) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+func (x *_sql_roundrobin) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	return new(sql.Row)
 }
 
-type brock_sql_helper struct{}
+type _sql_helper struct{}
 
 const (
 	_SELECT   = "SELECT"
@@ -342,7 +346,7 @@ const (
 )
 
 // RemoveComment from sql command.
-func (brock_sql_helper) RemoveComment(query string) string {
+func (_sql_helper) RemoveComment(query string) string {
 	commentStartIdx, replaces := -1, []string{}
 
 	for i := range query {
@@ -366,7 +370,7 @@ func (brock_sql_helper) RemoveComment(query string) string {
 }
 
 // IsMultipleCommand is a naive implementation of checking multiple sql command.
-func (x brock_sql_helper) IsMultipleCommand(query string) bool {
+func (x _sql_helper) IsMultipleCommand(query string) bool {
 	validCount := 0
 
 	for _, query := range strings.Split(query, ";") {
@@ -380,7 +384,7 @@ func (x brock_sql_helper) IsMultipleCommand(query string) bool {
 }
 
 // IsSELECTCommand only valid if starts with SELECT.
-func (x brock_sql_helper) IsSELECTCommand(query string) bool {
+func (x _sql_helper) IsSELECTCommand(query string) bool {
 	var ok bool
 
 	query = strings.ToUpper(strings.TrimSpace(x.RemoveComment(query)))
@@ -392,7 +396,7 @@ func (x brock_sql_helper) IsSELECTCommand(query string) bool {
 }
 
 // IsDMLCommand only valid if starts with INSERT, UPDATE, DELETE.
-func (x brock_sql_helper) IsDMLCommand(query string) bool {
+func (x _sql_helper) IsDMLCommand(query string) bool {
 	var ok bool
 
 	query = strings.ToUpper(strings.TrimSpace(x.RemoveComment(query)))
@@ -404,7 +408,7 @@ func (x brock_sql_helper) IsDMLCommand(query string) bool {
 }
 
 // IsDDLCommand only valid if starts with CREATE, ALTER, DROP, USE, ADD, EXEC, TRUNCATE.
-func (x brock_sql_helper) IsDDLCommand(query string) bool {
+func (x _sql_helper) IsDDLCommand(query string) bool {
 	var ok bool
 
 	query = strings.ToUpper(strings.TrimSpace(x.RemoveComment(query)))
@@ -415,6 +419,6 @@ func (x brock_sql_helper) IsDDLCommand(query string) bool {
 	return ok
 }
 
-func (x brock_sql_helper) IsValidCommand(query string) bool {
+func (x _sql_helper) IsValidCommand(query string) bool {
 	return x.IsSELECTCommand(query) || x.IsDMLCommand(query) || x.IsDDLCommand(query)
 }
