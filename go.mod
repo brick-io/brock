@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/gomega v1.20.0
+	github.com/rs/xid v1.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
