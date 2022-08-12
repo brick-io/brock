@@ -3,9 +3,14 @@ package brock
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"io"
 	"strings"
 	"sync"
+
+	"github.com/lib/pq"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
 )
 
 var SQL _sql
@@ -13,6 +18,41 @@ var SQL _sql
 type _sql struct {
 	Box    _sql_box
 	Helper _sql_helper
+}
+
+func (_sql) MustOpenDSN(dsn string) *sql.DB {
+	conn, err := SQL.OpenDSN(dsn)
+	if err != nil {
+		panic(err)
+	} else if conn == nil {
+		panic("empty database")
+	}
+	return conn
+}
+
+func (_sql) OpenDSN(dsn string) (*sql.DB, error) {
+	driverName := strings.Split(dsn+"://", "://")[0]
+	switch driverName {
+	case "postgres", "postgresql":
+		return sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn))), nil
+	default:
+		return sql.Open(driverName, dsn)
+	}
+}
+
+func (_sql) Discard() any { return new([]byte) }
+
+func (_sql) ArrayPostgreSQL(array any) interface {
+	driver.Valuer
+	sql.Scanner
+} {
+	return struct {
+		driver.Valuer
+		sql.Scanner
+	}{
+		driver.Valuer(pq.Array(array)),
+		sql.Scanner(pgdialect.Array(array)),
+	}
 }
 
 type (
@@ -51,8 +91,6 @@ type SQLTxConn interface {
 	QueryContext
 	QueryRowContext
 }
-
-func (_sql) Discard() any { return new([]byte) }
 
 type _sql_box struct{}
 
@@ -262,6 +300,12 @@ type _sql_roundrobin struct {
 	mutex *sync.Mutex
 }
 
+// conn will return a new Conn that balanced using roundRobin
+//
+//	rr.conn(0)    -> direct READ+WRITE
+//	rr.conn(1..n) -> direct READ-ONLY
+//	rr.conn(-1)   -> roundRobin READ+WRITE and READ-ONLY
+//	rr.conn(-2)   -> roundRobin READ-ONLY
 func (x *_sql_roundrobin) conn(i int) (SQLConn, error) {
 	l := len(x.conns)
 	switch {
@@ -298,35 +342,134 @@ func (x *_sql_roundrobin) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sq
 
 // Close all databases.
 func (x *_sql_roundrobin) Close() error {
-	errs := make([]error, 0)
+	errs := make(Errors, 0)
 	for i := range x.conns {
 		errs = append(errs, x.conns[i].Close())
 	}
 
-	return Errors(errs...)
+	return errs
 }
 
 // PingContext all databases.
 func (x *_sql_roundrobin) PingContext(ctx context.Context) error {
-	errs := make([]error, 0)
+	errs := make(Errors, 0)
 	for i := range x.conns {
 		errs = append(errs, x.conns[i].PingContext(ctx))
 	}
 
-	return Errors(errs...)
+	return errs
 }
 
+// PrepareContext valid queries are DDL, DML & SELECT.
 func (x *_sql_roundrobin) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	return nil, ErrUnimplemented
+	query = SQL.Helper.RemoveComment(query)
+
+	if SQL.Helper.IsMultipleCommand(query) {
+		return nil, ErrMultipleCommands
+	} else if !SQL.Helper.IsValidCommand(query) {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	}
+
+	conn, err := SQLConn(nil), error(nil)
+	if SQL.Helper.IsDDLCommand(query) {
+		conn, err = x.conn(0)
+	} else if SQL.Helper.IsDMLCommand(query) {
+		conn, err = x.conn(0)
+	} else if SQL.Helper.IsSELECTCommand(query) {
+		conn, err = x.conn(-2)
+	} else {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.PrepareContext(ctx, query)
 }
+
+// ExecContext valid queries are DDL & DML.
 func (x *_sql_roundrobin) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	return nil, ErrUnimplemented
+	query = SQL.Helper.RemoveComment(query)
+
+	if SQL.Helper.IsMultipleCommand(query) {
+		return nil, ErrMultipleCommands
+	} else if !SQL.Helper.IsValidCommand(query) {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	}
+
+	conn, err := SQLConn(nil), error(nil)
+	if SQL.Helper.IsDDLCommand(query) {
+		conn, err = x.conn(0)
+	} else if SQL.Helper.IsDMLCommand(query) {
+		conn, err = x.conn(0)
+	} else if SQL.Helper.IsSELECTCommand(query) {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	} else {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.ExecContext(ctx, query, args...)
 }
+
+// QueryContext valid queries are SELECT.
 func (x *_sql_roundrobin) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
-	return nil, ErrUnimplemented
+	query = SQL.Helper.RemoveComment(query)
+
+	if SQL.Helper.IsMultipleCommand(query) {
+		return nil, ErrMultipleCommands
+	} else if !SQL.Helper.IsValidCommand(query) {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	}
+
+	conn, err := SQLConn(nil), error(nil)
+	if SQL.Helper.IsSELECTCommand(query) {
+		conn, err = x.conn(-2)
+	} else if SQL.Helper.IsDDLCommand(query) {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	} else if SQL.Helper.IsDMLCommand(query) {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	} else {
+		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.QueryContext(ctx, query, args...)
 }
+
+// QueryRowContext valid queries are SELECT.
 func (x *_sql_roundrobin) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	return new(sql.Row)
+	query = SQL.Helper.RemoveComment(query)
+
+	if SQL.Helper.IsMultipleCommand(query) {
+		return nil
+	} else if !SQL.Helper.IsValidCommand(query) {
+		return nil
+	}
+
+	conn, err := SQLConn(nil), error(nil)
+	if SQL.Helper.IsSELECTCommand(query) {
+		conn, err = x.conn(-2)
+	} else if SQL.Helper.IsDDLCommand(query) {
+		return nil
+	} else if SQL.Helper.IsDMLCommand(query) {
+		return nil
+	} else {
+		return nil
+	}
+
+	if err != nil {
+		return nil
+	}
+
+	return conn.QueryRowContext(ctx, query, args...)
 }
 
 type _sql_helper struct{}
@@ -421,4 +564,11 @@ func (x _sql_helper) IsDDLCommand(query string) bool {
 
 func (x _sql_helper) IsValidCommand(query string) bool {
 	return x.IsSELECTCommand(query) || x.IsDMLCommand(query) || x.IsDDLCommand(query)
+}
+
+func (x _sql_helper) EscapeQuery(query string) string {
+	return strings.NewReplacer(
+		"(", "\\(",
+		")", "\\)",
+	).Replace(query)
 }

@@ -52,10 +52,12 @@ func (_http_request) Get(r *http.Request, key any) any {
 
 type _http_header struct{}
 
+// Create ...
 func (_http_header) Create(opts ...func(http.Header)) http.Header {
 	return Apply(make(http.Header), opts...)
 }
 
+// WithMap ...
 func (_http_header) WithMap(m map[string]string) func(http.Header) {
 	return func(h http.Header) {
 		for key, value := range m {
@@ -64,6 +66,7 @@ func (_http_header) WithMap(m map[string]string) func(http.Header) {
 	}
 }
 
+// WithKV ...
 func (_http_header) WithKV(key string, values ...string) func(http.Header) {
 	return func(h http.Header) {
 		for _, value := range values {
@@ -76,22 +79,26 @@ func (_http_header) WithKV(key string, values ...string) func(http.Header) {
 
 type _http_body struct{}
 
+// Create ...
 func (_http_body) Create(opts func() io.Reader) io.ReadCloser {
 	return io.NopCloser(opts())
 }
 
+// WithBytes ...
 func (_http_body) WithBytes(v []byte) func() io.Reader {
 	return func() io.Reader {
 		return bytes.NewBuffer(v)
 	}
 }
 
+// WithString ...
 func (_http_body) WithString(v string) func() io.Reader {
 	return func() io.Reader {
 		return bytes.NewBufferString(v)
 	}
 }
 
+// WithJSON ...
 func (_http_body) WithJSON(v any) func() io.Reader {
 	return func() io.Reader {
 		buf := new(bytes.Buffer)
@@ -101,10 +108,14 @@ func (_http_body) WithJSON(v any) func() io.Reader {
 }
 
 type _http_middleware struct{}
+type ctx_key_http_middleware_next_err struct{}
+type ctx_key_http_middleware_already_sent struct{}
+type ctx_key_http_middleware_already_streamed struct{}
 
-func (_http_middleware) Create(h ...http.Handler) http.Handler {
+// Chain multiple handlers as one http.Handler
+func (_http_middleware) Chain(handlers ...http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for _, h := range h {
+		for _, h := range handlers {
 			if h == nil {
 				continue
 			}
@@ -112,22 +123,24 @@ func (_http_middleware) Create(h ...http.Handler) http.Handler {
 
 			if HTTP.Request.IsCancelled(r) {
 				break
-			} else if HTTP.Request.Get(r, ctxKeyAlreadySent) != nil {
+			} else if HTTP.Request.Get(r, ctx_key_http_middleware_already_sent{}) != nil {
 				break
 			}
 		}
 	})
 }
 
-type ctx_key_http_middleware struct{ string }
+// MiddlewareHTTP helper contract
+type MiddlewareHTTP interface {
+	Err() error
+	Next(err error)
+	Send(statusCode int, header http.Header, body io.Reader) (int, error)
+	Stream(p []byte) (int, error)
+	H2Push(target, method string, header http.Header) error
+}
 
-var (
-	ctxKeyNextErr         = ctx_key_http_middleware{"next_err"}
-	ctxKeyAlreadySent     = ctx_key_http_middleware{"already_sent"}
-	ctxKeyAlreadyStreamed = ctx_key_http_middleware{"already_streamed"}
-)
-
-func (_http_middleware) Wrap(w http.ResponseWriter, r *http.Request) *_http_middleware_wrap {
+// Wrap the middleware helper from http.ResponseWriter and *http.Request
+func (_http_middleware) Wrap(w http.ResponseWriter, r *http.Request) MiddlewareHTTP {
 	return &_http_middleware_wrap{w, r}
 }
 
@@ -136,23 +149,26 @@ type _http_middleware_wrap struct {
 	r *http.Request
 }
 
+// Err get any error passed from the previous handler
 func (x *_http_middleware_wrap) Err() error {
-	err, _ := HTTP.Request.Get(x.r, ctxKeyNextErr).(error)
+	err, _ := HTTP.Request.Get(x.r, ctx_key_http_middleware_next_err{}).(error)
 	return err
 }
 
+// Next pass the error to the next handler
 func (x *_http_middleware_wrap) Next(err error) {
 	if err != nil {
-		*x.r = *(HTTP.Request.Set(x.r, ctxKeyNextErr, err))
+		*x.r = *(HTTP.Request.Set(x.r, ctx_key_http_middleware_next_err{}, err))
 	}
 }
 
+// Send is a shorthand for set the statusCode, header & body
 func (x *_http_middleware_wrap) Send(statusCode int, header http.Header, body io.Reader) (int, error) {
 	if http.StatusText(statusCode) == "" {
 		return 0, nil
-	} else if HTTP.Request.Get(x.r, ctxKeyAlreadySent) != nil {
+	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_sent{}) != nil {
 		return 0, ErrAlreadySent
-	} else if HTTP.Request.Get(x.r, ctxKeyAlreadyStreamed) != nil {
+	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_streamed{}) != nil {
 		return 0, ErrAlreadyStreamed
 	}
 
@@ -166,14 +182,15 @@ func (x *_http_middleware_wrap) Send(statusCode int, header http.Header, body io
 		body = new(bytes.Buffer)
 	}
 	n, err := io.Copy(x.w, body)
-	*x.r = *(HTTP.Request.Set(x.r, ctxKeyAlreadySent, NonNil))
+	*x.r = *(HTTP.Request.Set(x.r, ctx_key_http_middleware_already_sent{}, NonNil))
 	return int(n), err
 }
 
+// Stream is used for streaming response to the client
 func (x *_http_middleware_wrap) Stream(p []byte) (int, error) {
 	if len(p) < 1 {
 		return 0, nil
-	} else if HTTP.Request.Get(x.r, ctxKeyAlreadySent) != nil {
+	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_sent{}) != nil {
 		return 0, ErrAlreadySent
 
 	}
@@ -190,16 +207,17 @@ func (x *_http_middleware_wrap) Stream(p []byte) (int, error) {
 
 	n, err := w.Write(p)
 	w.Flush()
-	*x.r = *(HTTP.Request.Set(x.r, ctxKeyAlreadyStreamed, NonNil))
+	*x.r = *(HTTP.Request.Set(x.r, ctx_key_http_middleware_already_streamed{}, NonNil))
 	return n, err
 }
 
+// H2Push initiate a HTTP/2 server push
 func (x *_http_middleware_wrap) H2Push(target, method string, header http.Header) error {
 	if target == "" {
 		return nil
-	} else if HTTP.Request.Get(x.r, ctxKeyAlreadySent) != nil {
+	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_sent{}) != nil {
 		return ErrAlreadySent
-	} else if HTTP.Request.Get(x.r, ctxKeyAlreadyStreamed) != nil {
+	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_streamed{}) != nil {
 		return ErrAlreadyStreamed
 	}
 

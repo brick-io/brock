@@ -23,7 +23,7 @@ then the first tx usually marking an ICO (initial coin offering)
 var (
 	_GOD = &Account{id: xid.New().Bytes(), name: "_GOD"}
 
-	ErrInsufficientFund = brock.Error("blockchain: insufficient fund")
+	ErrInsufficientFund = brock.Errorf("blockchain: insufficient fund")
 )
 
 func main() {
