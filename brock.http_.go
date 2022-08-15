@@ -17,6 +17,8 @@ type _http struct {
 	Body       _http_body
 	Middleware _http_middleware
 	Request    _http_request
+	MuxMatcher _http_mux_matcher
+	// func (_http) MuxMatcher() _http_mux_matcher { return _http_mux_matcher{} }
 }
 
 type _http_request struct{}
@@ -111,6 +113,8 @@ type _http_middleware struct{}
 type ctx_key_http_middleware_next_err struct{}
 type ctx_key_http_middleware_already_sent struct{}
 type ctx_key_http_middleware_already_streamed struct{}
+type ctx_key_http_mux_panic_recovery struct{}
+type ctx_key_http_mux_named_arguments struct{}
 
 // Chain multiple handlers as one http.Handler
 func (_http_middleware) Chain(handlers ...http.Handler) http.Handler {
@@ -167,9 +171,9 @@ func (x *_http_middleware_wrap) Send(statusCode int, header http.Header, body io
 	if http.StatusText(statusCode) == "" {
 		return 0, nil
 	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_sent{}) != nil {
-		return 0, ErrAlreadySent
+		return 0, ErrHTTPAlreadySent
 	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_streamed{}) != nil {
-		return 0, ErrAlreadyStreamed
+		return 0, ErrHTTPAlreadyStreamed
 	}
 
 	for k, vs := range header {
@@ -191,7 +195,7 @@ func (x *_http_middleware_wrap) Stream(p []byte) (int, error) {
 	if len(p) < 1 {
 		return 0, nil
 	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_sent{}) != nil {
-		return 0, ErrAlreadySent
+		return 0, ErrHTTPAlreadySent
 
 	}
 
@@ -216,9 +220,9 @@ func (x *_http_middleware_wrap) H2Push(target, method string, header http.Header
 	if target == "" {
 		return nil
 	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_sent{}) != nil {
-		return ErrAlreadySent
+		return ErrHTTPAlreadySent
 	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_streamed{}) != nil {
-		return ErrAlreadyStreamed
+		return ErrHTTPAlreadyStreamed
 	}
 
 	w, ok := x.w.(http.Pusher)

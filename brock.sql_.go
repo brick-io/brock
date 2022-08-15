@@ -121,7 +121,7 @@ func (x _sql_box_exec) Scan(rowsAffected *int, lastInsertID *int) error {
 	}
 
 	if x.res == nil {
-		return ErrInvalidArguments
+		return ErrSQLInvalidArguments
 	}
 
 	if rowsAffected != nil {
@@ -179,7 +179,7 @@ func (x _sql_box_query) Scan(row func(i int) []any) error {
 	if err != nil {
 		return err
 	} else if len(cols) < 1 {
-		return ErrNoColumns
+		return ErrSQLNoColumns
 	}
 
 	for i := 0; x.res.Next(); i++ {
@@ -266,7 +266,7 @@ func (x _sql_box_begin_tx) Wrap(tx func() error) error {
 
 	new(sql.Row).Scan()
 
-	fn := Yield(error(ErrInvalidTransaction))
+	fn := Yield(error(ErrSQLInvalidTransaction))
 	x.once.Do(func() {
 		if err := tx(); err != nil {
 			fn = Yield(x.res.Rollback())
@@ -365,9 +365,9 @@ func (x *_sql_roundrobin) PrepareContext(ctx context.Context, query string) (*sq
 	query = SQL.Helper.RemoveComment(query)
 
 	if SQL.Helper.IsMultipleCommand(query) {
-		return nil, ErrMultipleCommands
+		return nil, ErrSQLMultipleCommands
 	} else if !SQL.Helper.IsValidCommand(query) {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	}
 
 	conn, err := SQLConn(nil), error(nil)
@@ -378,7 +378,7 @@ func (x *_sql_roundrobin) PrepareContext(ctx context.Context, query string) (*sq
 	} else if SQL.Helper.IsSELECTCommand(query) {
 		conn, err = x.conn(-2)
 	} else {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	}
 
 	if err != nil {
@@ -393,9 +393,9 @@ func (x *_sql_roundrobin) ExecContext(ctx context.Context, query string, args ..
 	query = SQL.Helper.RemoveComment(query)
 
 	if SQL.Helper.IsMultipleCommand(query) {
-		return nil, ErrMultipleCommands
+		return nil, ErrSQLMultipleCommands
 	} else if !SQL.Helper.IsValidCommand(query) {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	}
 
 	conn, err := SQLConn(nil), error(nil)
@@ -404,9 +404,9 @@ func (x *_sql_roundrobin) ExecContext(ctx context.Context, query string, args ..
 	} else if SQL.Helper.IsDMLCommand(query) {
 		conn, err = x.conn(0)
 	} else if SQL.Helper.IsSELECTCommand(query) {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	} else {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	}
 
 	if err != nil {
@@ -421,20 +421,20 @@ func (x *_sql_roundrobin) QueryContext(ctx context.Context, query string, args .
 	query = SQL.Helper.RemoveComment(query)
 
 	if SQL.Helper.IsMultipleCommand(query) {
-		return nil, ErrMultipleCommands
+		return nil, ErrSQLMultipleCommands
 	} else if !SQL.Helper.IsValidCommand(query) {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	}
 
 	conn, err := SQLConn(nil), error(nil)
 	if SQL.Helper.IsSELECTCommand(query) {
 		conn, err = x.conn(-2)
 	} else if SQL.Helper.IsDDLCommand(query) {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	} else if SQL.Helper.IsDMLCommand(query) {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	} else {
-		return nil, Errorf("%w: %q", ErrInvalidCommand, query)
+		return nil, Errorf("%w: %q", ErrSQLInvalidCommand, query)
 	}
 
 	if err != nil {
