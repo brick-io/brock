@@ -71,3 +71,25 @@ func IfThenElse[T any](cond bool, this, that T) T {
 	}
 	return that
 }
+
+func Must[T any](v T, err error) T {
+	PanicIf(err != nil, v)
+	return v
+}
+
+func PanicIf(cond bool, v any) {
+	if cond {
+		panic(v)
+	}
+}
+
+// RecoverPanic is a callback func to recover from panic
+//
+//	defer RecoverPanic(func(v any) { print(v) })()
+func RecoverPanic(fn func(v any)) func() {
+	return func() {
+		if fn != nil {
+			fn(recover())
+		}
+	}
+}
