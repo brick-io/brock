@@ -1,7 +1,6 @@
 package brock
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -19,10 +18,11 @@ type (
 	Scanner   = fmt.Scanner
 )
 
-//nolint: gochecknoglobals
+// nolint: gochecknoglobals
 var (
+	NonNil = struct{}{}
+
 	Errorf = fmt.Errorf
-	Error  = errors.New
 
 	// print.
 
@@ -63,4 +63,11 @@ func Apply[T any](opt T, opts ...func(T)) T {
 
 func Yield[T any](v T) func() T {
 	return func() T { return v }
+}
+
+func IfThenElse[T any](cond bool, this, that T) T {
+	if cond {
+		return this
+	}
+	return that
 }
