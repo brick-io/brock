@@ -20,6 +20,71 @@ func (_amqp) Open(url string, cfg AMQPConfiguration) (*AMQPConnection, error) {
 	return amqp091.DialConfig(url, cfg)
 }
 
+// Consume ...
+func (_amqp) Consume(ctx context.Context, c *AMQPChannel, h AMQPConsumeHandler, req *AMQPConsumeRequest) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	if c == nil || h == nil || req == nil {
+		err := error(nil)
+		return err
+	}
+
+	chDelivery, err := c.Consume(req.Queue, req.Consumer, req.AutoAck, req.Exclusive, req.NoLocal, req.NoWait, req.Args)
+	if err != nil {
+		return err
+	}
+
+	req.ctx = ctx
+	for {
+		var res *AMQPConsumeResponse
+		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+			res = &AMQPConsumeResponse{err: err}
+		case event := <-chDelivery:
+			res = &AMQPConsumeResponse{Delivery: &event}
+		case event := <-c.NotifyCancel(make(chan string)):
+			res = &AMQPConsumeResponse{err: Errorf("cancelled with subscription: %s", event)}
+		case event := <-c.NotifyClose(make(chan *AMQPError)):
+			res = &AMQPConsumeResponse{err: event}
+		}
+		h.ConsumeAMQP(req, res)
+		if err != nil {
+			return err
+		}
+	}
+}
+
+// Publish ...
+func (_amqp) Publish(ctx context.Context, c *AMQPChannel, h AMQPPublishHandler, req *AMQPPublishRequest) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	if h == nil {
+		err := error(nil)
+		return err
+	}
+
+	err := c.PublishWithContext(ctx, req.Exchange, req.Key, req.Mandatory, req.Immediate, req.Msg)
+	if err != nil {
+		return err
+	}
+
+	var res *AMQPPublishResponse
+	select {
+	case <-ctx.Done():
+		err = ctx.Err()
+		res = &AMQPPublishResponse{err: err}
+	case event := <-c.NotifyPublish(make(chan amqp091.Confirmation)):
+		res = &AMQPPublishResponse{Confirmation: &event}
+	case event := <-c.NotifyReturn(make(chan amqp091.Return)):
+		res = &AMQPPublishResponse{Return: &event}
+	}
+	h.PublishAMQP(req, res)
+	return err
+}
+
 // _amqp_connection ...
 type _amqp_connection struct{}
 
@@ -132,162 +197,66 @@ type AMQPConfirmation = amqp091.Confirmation
 type AMQPReturn = amqp091.Return
 type AMQPTable = amqp091.Table
 type AMQPPublishing = amqp091.Publishing
-type AMQPConsumeHandlerFunc func(ctx context.Context, d *AMQPDelivery, err error) error
-type AMQPPublishHandlerFunc func(c *AMQPConfirmation, r *AMQPReturn, err error) error
+
+// =============================================================================
+
 type AMQPConsumeHandler interface {
-	ConsumeAMQP(ctx context.Context, d *AMQPDelivery, err error) error
+	ConsumeAMQP(req *AMQPConsumeRequest, res *AMQPConsumeResponse)
 }
+type AMQPConsumeRequest struct {
+	Queue     string
+	Consumer  string
+	AutoAck   bool
+	Exclusive bool
+	NoLocal   bool
+	NoWait    bool
+	Args      AMQPTable
+
+	ctx context.Context
+}
+type AMQPConsumeResponse struct {
+	Delivery *AMQPDelivery
+
+	err error
+}
+
+func (req *AMQPConsumeRequest) Context() context.Context                    { return req.ctx }
+func (res *AMQPConsumeResponse) Err() error                                 { return res.err }
+func (cf cf) ConsumeAMQP(req *AMQPConsumeRequest, res *AMQPConsumeResponse) { cf(req, res) }
+
+type cf = AMQPConsumeHandlerFunc
+type AMQPConsumeHandlerFunc func(req *AMQPConsumeRequest, res *AMQPConsumeResponse)
+
+var _ = AMQPConsumeHandler(cf(nil))
+
+// =============================================================================
+
 type AMQPPublishHandler interface {
-	PublishAMQP(c *AMQPConfirmation, r *AMQPReturn, err error) error
+	PublishAMQP(req *AMQPPublishRequest, res *AMQPPublishResponse)
+}
+type AMQPPublishRequest struct {
+	Exchange,
+	Key string
+	Mandatory,
+	Immediate bool
+	Msg AMQPPublishing
+
+	ctx context.Context
+}
+type AMQPPublishResponse struct {
+	Confirmation *AMQPConfirmation
+	Return       *AMQPReturn
+
+	err error
 }
 
-func (fn AMQPConsumeHandlerFunc) ConsumeAMQP(ctx context.Context, d *AMQPDelivery, err error) error {
-	return fn(ctx, d, err)
-}
+func (req *AMQPPublishRequest) Context() context.Context                    { return req.ctx }
+func (res *AMQPPublishResponse) Err() error                                 { return res.err }
+func (pf pf) PublishAMQP(req *AMQPPublishRequest, res *AMQPPublishResponse) { pf(req, res) }
 
-func (fn AMQPPublishHandlerFunc) PublishAMQP(c *AMQPConfirmation, r *AMQPReturn, err error) error {
-	return fn(c, r, err)
-}
+type pf = AMQPPublishHandlerFunc
+type AMQPPublishHandlerFunc func(req *AMQPPublishRequest, res *AMQPPublishResponse)
 
-var _ = AMQPConsumeHandler(AMQPConsumeHandlerFunc(nil))
-var _ = AMQPPublishHandler(AMQPPublishHandlerFunc(nil))
+var _ = AMQPPublishHandler(pf(nil))
 
 // =============================================================================
-
-// Consume ...
-func (_amqp) Consume(ctx context.Context, c *AMQPChannel, h AMQPConsumeHandler, opts ...func(*_amqp_consume_opts)) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	if h == nil {
-		err := error(nil)
-		return err
-	}
-
-	o := Apply(new(_amqp_consume_opts), opts...)
-
-	chDelivery, err := c.Consume(o.queue, o.consumer, o.autoAck, o.exclusive, o.noLocal, o.noWait, o.args)
-	if err != nil {
-		return err
-	}
-
-	for {
-		var dlv *AMQPDelivery
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-		case event := <-chDelivery:
-			dlv = &event
-		case event := <-c.NotifyCancel(make(chan string)):
-			err = Errorf("cancel %s", event)
-		case event := <-c.NotifyClose(make(chan *AMQPError)):
-			err = event
-		}
-		if err = h.ConsumeAMQP(ctx, dlv, err); err != nil {
-			return err
-		}
-	}
-}
-
-// Publish ...
-func (_amqp) Publish(ctx context.Context, c *AMQPChannel, h AMQPPublishHandler, opts ...func(*_amqp_publish_opts)) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	if h == nil {
-		err := error(nil)
-		return err
-	}
-
-	o := Apply(new(_amqp_publish_opts), opts...)
-
-	err := c.PublishWithContext(ctx, o.exchange, o.key, o.mandatory, o.immediate, o.msg)
-	if err != nil {
-		return err
-	}
-
-	var conf *AMQPConfirmation
-	var ret *AMQPReturn
-	select {
-	case <-ctx.Done():
-		err = ctx.Err()
-	case event := <-c.NotifyPublish(make(chan amqp091.Confirmation)):
-		conf = &event
-	case event := <-c.NotifyReturn(make(chan amqp091.Return)):
-		ret = &event
-	}
-
-	return h.PublishAMQP(conf, ret, err)
-}
-
-// =============================================================================
-
-// _amqp_consume_opts ...
-type _amqp_consume_opts struct {
-	queue,
-	consumer string
-	autoAck,
-	exclusive,
-	noLocal,
-	noWait bool
-	args AMQPTable
-}
-
-// WithQueueAndConsumer ...
-func (_amqp) WithQueueAndConsumer(queue, consumer string) func(*_amqp_consume_opts) {
-	return func(o *_amqp_consume_opts) {
-		o.queue = queue
-		o.consumer = consumer
-	}
-}
-
-// WithConsumeFlag ...
-func (_amqp) WithConsumeFlag(autoAck, exclusive, noLocal, noWait bool) func(*_amqp_consume_opts) {
-	return func(o *_amqp_consume_opts) {
-		o.autoAck = autoAck
-		o.exclusive = exclusive
-		o.noLocal = noLocal
-		o.noWait = noWait
-	}
-}
-
-// WithConsumeArgs ...
-func (_amqp) WithConsumeArgs(args AMQPTable) func(*_amqp_consume_opts) {
-	return func(o *_amqp_consume_opts) {
-		o.args = args
-	}
-}
-
-// =============================================================================
-
-// _amqp_publish_opts ...
-type _amqp_publish_opts struct {
-	exchange,
-	key string
-	mandatory,
-	immediate bool
-	msg AMQPPublishing
-}
-
-// WithExchangeAndKey ...
-func (_amqp) WithExchangeAndKey(exchange, key string) func(*_amqp_publish_opts) {
-	return func(o *_amqp_publish_opts) {
-		o.exchange = exchange
-		o.key = key
-	}
-}
-
-// WithPublishFlag ...
-func (_amqp) WithPublishFlag(mandatory, immediate bool) func(*_amqp_publish_opts) {
-	return func(o *_amqp_publish_opts) {
-		o.mandatory = mandatory
-		o.immediate = immediate
-	}
-}
-
-// WithPublishing ...
-func (_amqp) WithPublishing(msg AMQPPublishing) func(*_amqp_publish_opts) {
-	return func(o *_amqp_publish_opts) {
-		o.msg = msg
-	}
-}

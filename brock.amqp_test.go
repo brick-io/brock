@@ -2,6 +2,7 @@ package brock_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -14,7 +15,12 @@ func test_amqp(t *testing.T) {
 	ctx := context.Background()
 
 	mq := brock.AMQP
-	conn, err := mq.Open("", brock.AMQPConfiguration{})
+
+	load := func() (*brock.AMQPConnection, error) {
+		return mq.Open("", brock.AMQPConfiguration{})
+	}
+
+	conn, err := load()
 	Expect(err).To(Succeed())
 
 	conn = mq.Connection.Update(conn,
@@ -26,27 +32,38 @@ func test_amqp(t *testing.T) {
 
 	ch = mq.Channel.Update(ch,
 		mq.Channel.WithOnCancel(func(s string) {}),
-		mq.Channel.WithOnClose(func(err error) {}),
+		mq.Channel.WithOnClose(func(err error) {
+			var e *brock.AMQPError
+			if errors.As(err, &e) {
+				//
+			}
+			ch, err = conn.Channel()
+			if err == nil && ch != nil {
+				return
+			}
+			conn, err = load()
+			if err == nil && conn != nil {
+				ch, err = conn.Channel()
+			}
+		}),
 		mq.Channel.WithOnFlow(func(b bool) {}),
 	)
 
-	onConsume := func(ctx context.Context, c *brock.AMQPDelivery, err error) error {
-		return nil
-	}
-	err = mq.Consume(ctx, ch, brock.AMQPConsumeHandlerFunc(onConsume),
-		mq.WithQueueAndConsumer("", ""),
-		mq.WithConsumeFlag(false, false, false, false),
-		mq.WithConsumeArgs(nil),
-	)
+	onConsume := brock.AMQPConsumeHandlerFunc(func(req *brock.AMQPConsumeRequest, res *brock.AMQPConsumeResponse) {
+		ctx, err := req.Context(), res.Err()
+		_, _ = ctx, err
+	})
+	err = mq.Consume(ctx, ch, onConsume, &brock.AMQPConsumeRequest{
+		Queue:    "",
+		Consumer: "",
+	})
 
-	onPublish := func(c *brock.AMQPConfirmation, r *brock.AMQPReturn, err error) error {
-		return nil
-	}
-	err = mq.Publish(ctx, ch, brock.AMQPPublishHandlerFunc(onPublish),
-		mq.WithExchangeAndKey("", ""),
-		mq.WithPublishFlag(false, false),
-		mq.WithPublishing(brock.AMQPPublishing{
-			Body: []byte(`{}`),
-		}),
-	)
+	onPublish := brock.AMQPPublishHandlerFunc(func(req *brock.AMQPPublishRequest, res *brock.AMQPPublishResponse) {
+		ctx, err := req.Context(), res.Err()
+		_, _ = ctx, err
+	})
+	err = mq.Publish(ctx, ch, onPublish, &brock.AMQPPublishRequest{
+		Exchange: "",
+		Key:      "",
+	})
 }
