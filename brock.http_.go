@@ -5,7 +5,9 @@ import (
 	"context"
 	"errors"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/url"
 )
 
 var (
@@ -14,6 +16,8 @@ var (
 
 type _http struct {
 	Header     _http_header
+	Query      _http_query
+	Multipart  _http_multipart
 	Body       _http_body
 	Middleware _http_middleware
 	Request    _http_request
@@ -52,6 +56,33 @@ func (_http_request) Get(r *http.Request, key any) any {
 
 // =============================================================================
 
+type _http_query struct{}
+
+// Create ...
+func (_http_query) Create(opts ...func(url.Values)) url.Values {
+	return Apply(make(url.Values), opts...)
+}
+
+// WithMap ...
+func (_http_query) WithMap(m map[string]string) func(url.Values) {
+	return func(h url.Values) {
+		for key, value := range m {
+			h.Add(key, value)
+		}
+	}
+}
+
+// WithKV ...
+func (_http_query) WithKV(key string, values ...string) func(url.Values) {
+	return func(h url.Values) {
+		for _, value := range values {
+			h.Add(key, value)
+		}
+	}
+}
+
+// =============================================================================
+
 type _http_header struct{}
 
 // Create ...
@@ -73,6 +104,35 @@ func (_http_header) WithKV(key string, values ...string) func(http.Header) {
 	return func(h http.Header) {
 		for _, value := range values {
 			h.Add(key, value)
+		}
+	}
+}
+
+// =============================================================================
+
+type _http_multipart struct{}
+
+func (_http_multipart) Create(opts ...func(*multipart.Writer)) *multipart.Writer {
+	return Apply(new(multipart.Writer), opts...)
+}
+
+func (_http_multipart) WithWriter(w io.Writer) func(*multipart.Writer) {
+	return func(mw *multipart.Writer) {
+		*mw = *(multipart.NewWriter(w))
+	}
+}
+
+func (_http_multipart) WithField(key, value string) func(*multipart.Writer) {
+	return func(mw *multipart.Writer) {
+		_ = mw.WriteField(key, value)
+	}
+}
+
+func (_http_multipart) WithFile(key, filename string, r io.Reader) func(*multipart.Writer) {
+	return func(mw *multipart.Writer) {
+		w, err := mw.CreateFormFile(key, filename)
+		if err == nil {
+			_, _ = io.Copy(w, r)
 		}
 	}
 }

@@ -20,17 +20,7 @@ type _sql struct {
 	Helper _sql_helper
 }
 
-func (_sql) MustOpenDSN(dsn string) *sql.DB {
-	conn, err := SQL.OpenDSN(dsn)
-	if err != nil {
-		panic(err)
-	} else if conn == nil {
-		panic("empty database")
-	}
-	return conn
-}
-
-func (_sql) OpenDSN(dsn string) (*sql.DB, error) {
+func (_sql) Open(dsn string) (*sql.DB, error) {
 	driverName := strings.Split(dsn+"://", "://")[0]
 	switch driverName {
 	case "postgres", "postgresql":

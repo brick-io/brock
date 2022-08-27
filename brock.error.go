@@ -33,9 +33,22 @@ type ErrorWrapper interface {
 type WrapError struct {
 	Err error
 	Msg string
+
+	// default error string
+	Redact string
 }
 
-func (err *WrapError) Error() string { return IfThenElse(err.Msg != "", err.Msg, err.Err.Error()) }
+func (err *WrapError) Error() string {
+	switch {
+	case err.Redact != "":
+		return err.Redact
+	case err.Err == nil:
+		return err.Msg
+	case err.Msg == "":
+		return err.Err.Error()
+	}
+	return err.Msg + ": " + err.Err.Error()
+}
 
 func (err *WrapError) Unwrap() error { return err.Err }
 
