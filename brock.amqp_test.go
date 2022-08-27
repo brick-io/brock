@@ -33,7 +33,7 @@ func test_amqp(t *testing.T) {
 	onConsume := func(ctx context.Context, c *brock.AMQPDelivery, err error) error {
 		return nil
 	}
-	err = mq.Consume(ctx, ch, onConsume,
+	err = mq.Consume(ctx, ch, brock.AMQPConsumeHandlerFunc(onConsume),
 		mq.WithQueueAndConsumer("", ""),
 		mq.WithConsumeFlag(false, false, false, false),
 		mq.WithConsumeArgs(nil),
@@ -42,7 +42,7 @@ func test_amqp(t *testing.T) {
 	onPublish := func(c *brock.AMQPConfirmation, r *brock.AMQPReturn, err error) error {
 		return nil
 	}
-	err = mq.Publish(ctx, ch, onPublish,
+	err = mq.Publish(ctx, ch, brock.AMQPPublishHandlerFunc(onPublish),
 		mq.WithExchangeAndKey("", ""),
 		mq.WithPublishFlag(false, false),
 		mq.WithPublishing(brock.AMQPPublishing{

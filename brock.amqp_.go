@@ -132,17 +132,34 @@ type AMQPConfirmation = amqp091.Confirmation
 type AMQPReturn = amqp091.Return
 type AMQPTable = amqp091.Table
 type AMQPPublishing = amqp091.Publishing
-type AMQPOnConsumeFunc func(ctx context.Context, c *AMQPDelivery, err error) error
-type AMQPOnPublishFunc func(c *AMQPConfirmation, r *AMQPReturn, err error) error
+type AMQPConsumeHandlerFunc func(ctx context.Context, d *AMQPDelivery, err error) error
+type AMQPPublishHandlerFunc func(c *AMQPConfirmation, r *AMQPReturn, err error) error
+type AMQPConsumeHandler interface {
+	ConsumeAMQP(ctx context.Context, d *AMQPDelivery, err error) error
+}
+type AMQPPublishHandler interface {
+	PublishAMQP(c *AMQPConfirmation, r *AMQPReturn, err error) error
+}
+
+func (fn AMQPConsumeHandlerFunc) ConsumeAMQP(ctx context.Context, d *AMQPDelivery, err error) error {
+	return fn(ctx, d, err)
+}
+
+func (fn AMQPPublishHandlerFunc) PublishAMQP(c *AMQPConfirmation, r *AMQPReturn, err error) error {
+	return fn(c, r, err)
+}
+
+var _ = AMQPConsumeHandler(AMQPConsumeHandlerFunc(nil))
+var _ = AMQPPublishHandler(AMQPPublishHandlerFunc(nil))
 
 // =============================================================================
 
 // Consume ...
-func (_amqp) Consume(ctx context.Context, c *AMQPChannel, fn AMQPOnConsumeFunc, opts ...func(*_amqp_consume_opts)) error {
+func (_amqp) Consume(ctx context.Context, c *AMQPChannel, h AMQPConsumeHandler, opts ...func(*_amqp_consume_opts)) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	if fn == nil {
+	if h == nil {
 		err := error(nil)
 		return err
 	}
@@ -166,18 +183,18 @@ func (_amqp) Consume(ctx context.Context, c *AMQPChannel, fn AMQPOnConsumeFunc, 
 		case event := <-c.NotifyClose(make(chan *AMQPError)):
 			err = event
 		}
-		if err = fn(ctx, dlv, err); err != nil {
+		if err = h.ConsumeAMQP(ctx, dlv, err); err != nil {
 			return err
 		}
 	}
 }
 
 // Publish ...
-func (_amqp) Publish(ctx context.Context, c *AMQPChannel, fn AMQPOnPublishFunc, opts ...func(*_amqp_publish_opts)) error {
+func (_amqp) Publish(ctx context.Context, c *AMQPChannel, h AMQPPublishHandler, opts ...func(*_amqp_publish_opts)) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	if fn == nil {
+	if h == nil {
 		err := error(nil)
 		return err
 	}
@@ -200,7 +217,7 @@ func (_amqp) Publish(ctx context.Context, c *AMQPChannel, fn AMQPOnPublishFunc, 
 		ret = &event
 	}
 
-	return fn(conf, ret, err)
+	return h.PublishAMQP(conf, ret, err)
 }
 
 // =============================================================================
