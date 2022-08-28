@@ -14,56 +14,65 @@ func test_amqp(t *testing.T) {
 	Expect := NewWithT(t).Expect
 	ctx := context.Background()
 
-	mq := brock.AMQP
-
-	load := func() (*brock.AMQPConnection, error) {
-		return mq.Open("", brock.AMQPConfiguration{})
-	}
+	amqp, url, cfg := brock.AMQP, "", brock.AMQPConfiguration{}
+	load := func() (*brock.AMQPConnection, error) { return amqp.Open(url, cfg) }
 
 	conn, err := load()
 	Expect(err).To(Succeed())
 
-	conn = mq.Connection.Update(conn,
-		mq.Connection.WithOnInfo(func(major, minor int, properties map[string]any, locales ...string) {}),
-	)
+	_, _, _, _ = conn.Major, conn.Minor, conn.Properties, conn.Locales
 
 	ch, err := conn.Channel()
 	Expect(err).To(Succeed())
-
-	ch = mq.Channel.Update(ch,
-		mq.Channel.WithOnCancel(func(s string) {}),
-		mq.Channel.WithOnClose(func(err error) {
-			var e *brock.AMQPError
-			if errors.As(err, &e) {
-				//
-			}
+	onCancel := func(s string) {
+		//
+	}
+	onClose := func(err error) {
+		var e *brock.AMQPError
+		if errors.As(err, &e) {
+			//
+		}
+		ch, err = conn.Channel()
+		if err == nil && ch != nil {
+			return
+		}
+		conn, err = load()
+		if err == nil && conn != nil {
 			ch, err = conn.Channel()
-			if err == nil && ch != nil {
-				return
-			}
-			conn, err = load()
-			if err == nil && conn != nil {
-				ch, err = conn.Channel()
-			}
-		}),
-		mq.Channel.WithOnFlow(func(b bool) {}),
+		}
+	}
+	onFlow := func(b bool) {
+		//
+	}
+
+	ch = brock.Apply(ch,
+		amqp.WithOnCancel(onCancel),
+		amqp.WithOnClose(onClose),
+		amqp.WithOnFlow(onFlow),
+		amqp.Consume(new(brock.AMQPConsumeRequest).
+			WithContext(ctx, "", "", false, false, false, false, nil),
+			brock.AMQPConsumeHandlerFunc(func(r *brock.AMQPConsumeRequest, d *brock.AMQPDelivery, err error) {
+				_ = r.Context()
+			}),
+		),
+		amqp.Consume(new(brock.AMQPConsumeRequest).
+			WithContext(ctx, "", "", false, false, false, false, nil),
+			brock.AMQPConsumeHandlerFunc(func(r *brock.AMQPConsumeRequest, d *brock.AMQPDelivery, err error) {
+				_ = r.Context()
+			}),
+		),
 	)
 
-	onConsume := brock.AMQPConsumeHandlerFunc(func(req *brock.AMQPConsumeRequest, res *brock.AMQPConsumeResponse) {
-		ctx, err := req.Context(), res.Err()
-		_, _ = ctx, err
-	})
-	err = mq.Consume(ctx, ch, onConsume, &brock.AMQPConsumeRequest{
-		Queue:    "",
-		Consumer: "",
-	})
-
-	onPublish := brock.AMQPPublishHandlerFunc(func(req *brock.AMQPPublishRequest, res *brock.AMQPPublishResponse) {
-		ctx, err := req.Context(), res.Err()
-		_, _ = ctx, err
-	})
-	err = mq.Publish(ctx, ch, onPublish, &brock.AMQPPublishRequest{
-		Exchange: "",
-		Key:      "",
-	})
+	_, _, _ = amqp.Publish(new(brock.AMQPPublishRequest).
+		WithContext(ctx, "", "", false, false, nil),
+		ch,
+	)
+	_, _, _ = amqp.Publish(new(brock.AMQPPublishRequest).
+		WithContext(ctx, "", "", false, false, nil),
+		ch,
+	)
+	_, _, _ = amqp.Publish(new(brock.AMQPPublishRequest).
+		WithContext(ctx, "", "", false, false, nil),
+		ch,
+	)
 }
