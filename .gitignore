@@ -1,0 +1,14 @@
+# ignore binaries
+cmd/hercules/hercules
+cmd/sauron/api/sauron-api
+cmd/sauron/worker/sauron-worker
+
+# ignore directories
+.vscode/
+vendor/
+
+# ignore child of directories
+**/log/*
+
+# track
+!**/.keep
