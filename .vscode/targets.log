@@ -7,7 +7,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 
 # This program built for i386-apple-darwin11.3.0
 
-# Make data base, printed on Fri Sep  9 13:45:03 2022
+# Make data base, printed on Tue Sep 13 17:32:26 2022
 
 # Variables
 
@@ -48,11 +48,13 @@ LSCOLORS = Gxfxcxdxbxegedabagacad
 # environment
 GOPATH = /Users/gunawanwijaya/go
 # environment
+LaunchInstanceID = 2AAFC003-4546-4F8B-A395-E05DF2DDAC74
+# environment
 ELECTRON_RUN_AS_NODE = 1
 # default
 .FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
 # environment
-SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.DPomUn4Gsl/Listeners
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.UUBvqRZ22g/Listeners
 # automatic
 %F = $(notdir $%)
 # environment
@@ -141,6 +143,8 @@ MAKEFILES :=
 PAGER = less
 # environment
 LC_ALL = C
+# environment
+SECURITYSESSIONID = 186ac
 # automatic
 ^F = $(notdir $^)
 # default
@@ -150,9 +154,9 @@ MAKELEVEL := 0
 # environment
 LANG = C
 # environment
-VSCODE_PID = 88692
+VSCODE_PID = 2403
 # variable set hash-table stats:
-# Load=70/1024=7%, Rehash=0, Collisions=2/90=2%
+# Load=72/1024=7%, Rehash=0, Collisions=2/92=2%
 
 # Pattern-specific Variable Values
 
@@ -234,7 +238,7 @@ GNUmakefile:
 # strcache size: total = 0 / max = 0 / min = 4096 / avg = 0
 # strcache free: total = 0 / max = 0 / min = 4096 / avg = 0
 
-# Finished Make data base on Fri Sep  9 13:45:03 2022
+# Finished Make data base on Tue Sep 13 17:32:26 2022
 
  
 make: *** No rule to make target `all'.  Stop.

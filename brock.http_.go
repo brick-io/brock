@@ -3,11 +3,13 @@ package brock
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 var (
@@ -21,8 +23,6 @@ type _http struct {
 	Body       _http_body
 	Middleware _http_middleware
 	Request    _http_request
-	MuxMatcher _http_mux_matcher
-	// func (_http) MuxMatcher() _http_mux_matcher { return _http_mux_matcher{} }
 }
 
 type _http_request struct{}
@@ -173,8 +173,6 @@ type _http_middleware struct{}
 type ctx_key_http_middleware_next_err struct{}
 type ctx_key_http_middleware_already_sent struct{}
 type ctx_key_http_middleware_already_streamed struct{}
-type ctx_key_http_mux_panic_recovery struct{}
-type ctx_key_http_mux_named_arguments struct{}
 
 // Chain multiple handlers as one http.Handler
 func (_http_middleware) Chain(handlers ...http.Handler) http.Handler {
@@ -196,10 +194,15 @@ func (_http_middleware) Chain(handlers ...http.Handler) http.Handler {
 
 // MiddlewareHTTP helper contract
 type MiddlewareHTTP interface {
+	// Err get any error passed from the previous handler
 	Err() error
+	// Next pass the error to the next handler
 	Next(err error)
+	// Send is a shorthand for set the statusCode, header & body
 	Send(statusCode int, header http.Header, body io.Reader) (int, error)
+	// Stream is used for streaming response to the client
 	Stream(p []byte) (int, error)
+	// H2Push initiate a HTTP/2 server push
 	H2Push(target, method string, header http.Header) error
 }
 
@@ -295,4 +298,229 @@ func (x *_http_middleware_wrap) H2Push(target, method string, header http.Header
 		opts = &http.PushOptions{Method: method, Header: header}
 	}
 	return w.Push(target, opts)
+}
+
+type ctx_key_http_mux_named_arguments struct{}
+
+// NamedArgsFromRequest is a helper function that extract url.Values that have
+// been parsed using MuxMatcherPattern, url.Values should not be empty if
+// parsing is successful and should be able to extract further following
+// url.Values, same keys in the pattern result in new value added in url.Values.
+func (_http) NamedArgsFromRequest(r *http.Request) url.Values {
+	u, _ := HTTP.Request.Get(r, ctx_key_http_mux_named_arguments{}).(url.Values)
+
+	return u
+}
+
+type ctx_key_http_mux_panic_recovery struct{}
+
+// PanicRecoveryFromRequest is a helper function that extract error value
+// when panic occurred, the value is saved to *http.Request after recovery
+// process and right before calling mux.PanicHandler.
+func (_http) PanicRecoveryFromRequest(r *http.Request) any {
+	return HTTP.Request.Get(r, ctx_key_http_mux_panic_recovery{})
+}
+
+func (_http) Mux() *_http_mux {
+	return &_http_mux{
+		entries: make(map[string]_http_mux_entry),
+		panicHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			b64 := base64.RawStdEncoding
+			btoa := func(b []byte) []byte {
+				enc := make([]byte, b64.EncodedLen(len(b)))
+				b64.Encode(enc, b)
+
+				return enc
+			}
+
+			pub, pvt, _ := Crypto.NaCl.Box.Generate()
+			key := Crypto.NaCl.Box.SharedKey(pub, pvt)
+			cipher := Crypto.NaCl.SecretBox.Seal([]byte(Sprint(HTTP.PanicRecoveryFromRequest(r))), key[:])
+			w.Header().Set("X-Recovery-Code", string(btoa(key[:])))
+
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code)+"\n"+string(btoa(cipher)), code)
+		}),
+		notFoundHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			code := http.StatusNotFound
+			http.Error(w, http.StatusText(code), code)
+		}),
+	}
+}
+
+type _http_mux_entry struct {
+	parts []string
+	http.Handler
+}
+
+type _http_mux struct {
+	entries map[string]_http_mux_entry
+	panicHandler,
+	notFoundHandler http.Handler
+}
+
+// HandlePanic register http.Handler that called when panic occured,
+// to access the recovered value
+//
+//	brock.HTTP.PanicRecoveryFromRequest(r)
+func (m *_http_mux) HandlePanic(h http.Handler) *_http_mux { m.panicHandler = h; return m }
+
+// HandleNotFound register http.Handler that called when no matches request
+func (m *_http_mux) HandleNotFound(h http.Handler) *_http_mux { m.notFoundHandler = h; return m }
+
+// Handle register http.Handler based on the given pattern
+func (m *_http_mux) Handle(method, pattern string, h http.Handler) *_http_mux {
+	if len(method) < 1 {
+		panic("method: empty")
+	} else if len(pattern) < 1 {
+		panic("path: empty")
+	} else if pattern != m.canonicalPath(pattern) {
+		panic("path: should be canonical: use \"" + m.canonicalPath(pattern) + "\" instead of \"" + pattern + "\"")
+	}
+
+	switch method {
+	default:
+		panic("method: invalid: " + method)
+	case
+		http.MethodGet,
+		http.MethodHead,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete,
+		http.MethodConnect,
+		http.MethodOptions,
+		http.MethodTrace:
+	}
+
+	parts, keys := make([]string, 0), make(map[string]struct{})
+	for i, p := 0, 0; i < len(pattern); i++ {
+		if pattern[i] != '{' {
+			continue
+		}
+		parts = append(parts, pattern[p:i])
+
+		// previous rune is '}'
+		if i > 0 && pattern[i-1] == '}' {
+			panic("pattern: need separator")
+		}
+
+		// next rune is '}'
+		if i+1 < len(pattern) && pattern[i+1] == '}' {
+			panic("pattern: empty key")
+		}
+
+		if i+1 < len(pattern) {
+			s := strings.Index(pattern[i+1:], "}")
+			key := pattern[i+1:][:s]
+			if _, ok := keys[key]; ok {
+				panic("pattern: duplicate key: " + key)
+			}
+			i = i + 1 + s
+			p = i + 1
+			keys[key] = struct{}{}
+			parts = append(parts, "{"+key+"}")
+		}
+	}
+
+	m.entries[method+" "+pattern] = _http_mux_entry{parts, h}
+	return m
+}
+
+// ServeHTTP implement the http.Handler
+func (m *_http_mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var _ http.Handler = m
+
+	defer func() {
+		if rcv := recover(); rcv != nil {
+			HTTP.Request.Set(r, ctx_key_http_mux_panic_recovery{}, rcv)
+			m.panicHandler.ServeHTTP(w, HTTP.Request.Cancel(r))
+		}
+	}()
+
+	key := m.requestKey(r)
+	if e, ok := m.entries[key]; len(key) > 0 && ok && e.Handler != nil {
+		e.ServeHTTP(w, r)
+		return
+	}
+	m.notFoundHandler.ServeHTTP(w, r)
+}
+
+func (m *_http_mux) requestKey(r *http.Request) string {
+	pat, n, u := m.canonicalPath(r.URL.String()), 0, make(url.Values)
+	k := r.Method + " " + pat
+	if _, ok := m.entries[k]; ok &&
+		strings.Index(pat, "{") < 0 &&
+		strings.Index(pat, "}") < 0 && ok {
+		return k
+	}
+
+	for k, entry := range m.entries {
+		if strings.Index(k, r.Method) >= 0 {
+			n, u = m.parse(pat, n, u, entry)
+			if len(u) > 0 {
+				HTTP.Request.Set(r, ctx_key_http_mux_named_arguments{}, u)
+			}
+			return k
+		}
+	}
+	return ""
+}
+
+func (m *_http_mux) canonicalPath(s string) string {
+	if h := strings.Index(s, "?"); h > 0 {
+		s = s[0:h]
+	}
+
+	if h := strings.Index(s, "#"); h > 0 {
+		s = s[0:h]
+	}
+
+	if h := strings.Index(s, "://"); h >= 0 {
+		s = s[h+len("://"):]
+	}
+
+	if h := strings.Index(s, "/") + 1; h > 0 {
+		if strings.Index(s[0:h], ".") < 0 {
+			h = 0
+		}
+		s = s[h:]
+	}
+
+	if s[0] != '/' {
+		s = "/" + s
+	}
+
+	for len(s) > 1 && s[len(s)-1] == '/' {
+		s = s[:len(s)-1]
+	}
+
+	return strings.ToLower(s)
+}
+
+func (m *_http_mux) parse(pattern string, n int, u url.Values, e _http_mux_entry) (int, url.Values) {
+	for i, part := range e.parts {
+		if len(part) > 0 && part[0] != '{' && part[len(part)-1] != '}' { // static
+			nn := strings.Index(pattern[n:], part)
+			n = n + len(part) + nn
+		} else if len(part) > 2 && part[0] == '{' && part[len(part)-1] == '}' { // vars
+			key, val := part[1:len(part)-1], ""
+			if i < len(e.parts)-1 {
+				next := e.parts[i+1]
+				nn := strings.Index(pattern[n:], next)
+				if nn > 0 {
+					val = pattern[n:][:nn]
+					n = nn
+				}
+			} else {
+				if n < len(pattern) {
+					val = pattern[n:]
+				}
+			}
+			if len(val) > 0 {
+				u.Set(key, val)
+			}
+		}
+	}
+	return n, u
 }

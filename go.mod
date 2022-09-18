@@ -7,6 +7,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/json-iterator/go v1.1.12
 	github.com/lib/pq v1.10.6
+	github.com/miekg/dns v1.1.40
 	github.com/onsi/gomega v1.20.0
 	github.com/rabbitmq/amqp091-go v1.4.0
 	github.com/rs/xid v1.4.0
