@@ -39,6 +39,7 @@ var (
 	Sprintln = fmt.Sprintln
 
 	// scan.
+
 	Scan   = fmt.Scan
 	Scanln = fmt.Scanln
 	Scanf  = fmt.Scanf
@@ -52,6 +53,12 @@ var (
 	Fscanf  = fmt.Fscanf
 )
 
+func Ref[T any](v T) *T { return &v }
+
+func Val[T any](v *T) T { return IfThenElse(v == nil, *new(T), *v) }
+
+func Yield[T any](v T) func() T { return func() T { return v } }
+
 func Apply[T any](opt T, opts ...func(T)) T {
 	for _, fn := range opts {
 		if fn != nil {
@@ -59,10 +66,6 @@ func Apply[T any](opt T, opts ...func(T)) T {
 		}
 	}
 	return opt
-}
-
-func Yield[T any](v T) func() T {
-	return func() T { return v }
 }
 
 func IfThenElse[T any](cond bool, this, that T) T {

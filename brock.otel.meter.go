@@ -33,7 +33,7 @@ type MeterConfiguration struct {
 	}
 }
 
-func (open_telemetry) NewMeter(ctx context.Context, c *MeterConfiguration) *Meter {
+func (o_t) NewMeter(ctx context.Context, c *MeterConfiguration) *Meter {
 	if m, ok := ctx.Value(meterCtxKey{}).(*Meter); ok && m != nil {
 		return m
 	}
