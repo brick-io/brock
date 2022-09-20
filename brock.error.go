@@ -2,7 +2,6 @@ package brock
 
 import (
 	"errors"
-	"strings"
 )
 
 var (
@@ -78,15 +77,20 @@ func (err *SQLRoundRobinError) Error() string {
 	)
 }
 
+// Errors combine multiple errors into one error
 type Errors []error
 
-// Errors combine multiple errors into one error
 func (errs Errors) Error() string {
 	out := make([]string, 0)
-	for _, each := range errs.Filter(func(err error) bool { return err != nil }) {
-		out = append(out, each.Error())
+	for _, each := range errs {
+		if each != nil {
+			out = append(out, each.Error())
+		} else {
+			out = append(out, "")
+		}
 	}
-	return IfThenElse(len(out) < 1, "", strings.Join(out, ", "))
+	p, _ := JSON.Marshal(out)
+	return IfThenElse(len(out) < 1, "", string(p))
 }
 
 func (errs Errors) Filter(fn func(error) bool) Errors {
