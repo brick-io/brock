@@ -83,12 +83,18 @@ type Errors []error
 // Errors combine multiple errors into one error
 func (errs Errors) Error() string {
 	out := make([]string, 0)
-	for _, each := range errs {
-		if each == nil {
-			continue
-		}
-
+	for _, each := range errs.Filter(func(err error) bool { return err != nil }) {
 		out = append(out, each.Error())
 	}
-	return strings.Join(out, ", ")
+	return IfThenElse(len(out) < 1, "", strings.Join(out, ", "))
+}
+
+func (errs Errors) Filter(fn func(error) bool) Errors {
+	out := make(Errors, 0)
+	for _, each := range errs {
+		if fn(each) {
+			out = append(out, each)
+		}
+	}
+	return IfThenElse(len(out) < 1, nil, out)
 }
