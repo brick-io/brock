@@ -370,17 +370,18 @@ func (m *_http_mux) HandleNotFound(h http.Handler) *_http_mux { m.notFoundHandle
 
 // Handle register http.Handler based on the given pattern
 func (m *_http_mux) Handle(method, pattern string, h http.Handler) *_http_mux {
-	if len(method) < 1 {
-		panic("method: empty")
-	} else if len(pattern) < 1 {
-		panic("path: empty")
-	} else if pattern != m.canonicalPath(pattern) {
-		panic("path: should be canonical: use \"" + m.canonicalPath(pattern) + "\" instead of \"" + pattern + "\"")
+	if ms := strings.Split(method, ","); len(ms) > 1 {
+		for _, method := range ms {
+			m.Handle(method, pattern, h)
+		}
+		return m
 	}
 
 	switch method {
 	default:
 		panic("method: invalid: " + method)
+	case "":
+		panic("method: empty")
 	case
 		http.MethodGet,
 		http.MethodHead,
@@ -391,6 +392,12 @@ func (m *_http_mux) Handle(method, pattern string, h http.Handler) *_http_mux {
 		http.MethodConnect,
 		http.MethodOptions,
 		http.MethodTrace:
+	}
+
+	if len(pattern) < 1 {
+		panic("path: empty")
+	} else if pattern != m.canonicalPath(pattern) {
+		panic("path: should be canonical: use \"" + m.canonicalPath(pattern) + "\" instead of \"" + pattern + "\"")
 	}
 
 	parts, keys := make([]string, 0), make(map[string]struct{})

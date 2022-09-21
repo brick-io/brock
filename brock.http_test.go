@@ -112,8 +112,8 @@ func test_http_mux(t *testing.T) {
 		brock.HTTP.Header.WithKV("X-Content-Type-Options", "nosniff"),
 	)
 	mux := brock.HTTP.Mux().
-		Handle("GET", "/aku/{id}_{v}/makan/{tipe}", handler).
-		Handle("GET", "/aku", handler)
+		Handle("GET,PUT,PATCH", "/aku/{id}_{v}/makan/{tipe}", handler).
+		Handle("GET,PUT,PATCH", "/aku", handler)
 	{
 		w, r := newMockHandler("GET", "/aku/123_mau/makan/nasi/goreng", nil)
 		mux.ServeHTTP(w, r)

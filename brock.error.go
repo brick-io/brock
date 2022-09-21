@@ -8,6 +8,8 @@ var (
 	ErrCryptoInvalidPEMFormat    = Errorf("brock: crypto: invalid pem format")
 	ErrCryptoInvalidKeypair      = Errorf("brock: crypto: invalid keypair")
 	ErrCryptoUnsupportedKeyTypes = Errorf("brock: crypto: unsupported key type")
+	ErrFSMEmptyStates            = Errorf("brock: fsm: empty states")
+	ErrFSMNoInitialStates        = Errorf("brock: fsm: no initial states")
 	ErrHTTPAlreadySent           = Errorf("brock: http: already sent to the client")
 	ErrHTTPAlreadyStreamed       = Errorf("brock: http: already streamed to the client")
 	ErrHTTPRequestCancelled      = Errorf("brock: http: request cancelled")
