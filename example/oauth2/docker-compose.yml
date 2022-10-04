@@ -1,0 +1,16 @@
+version: "3.9" # optional since v1.27.0
+name: oauth2
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:alpine
+    ports: [5432:5432]
+    restart: always
+    environment:
+      POSTGRES_DB: oauth2_db
+      POSTGRES_USER: oauth2_user
+      POSTGRES_PASSWORD: oauth2_password
+  oauth2:
+    build: .
+    ports: [9096:9096]
+    depends_on: [postgres]

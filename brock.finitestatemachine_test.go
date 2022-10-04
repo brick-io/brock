@@ -7,8 +7,6 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func TestXxx(t *testing.T) { test_fsm(t) }
-
 func test_fsm(t *testing.T) {
 	t.Parallel()
 

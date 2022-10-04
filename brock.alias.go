@@ -53,6 +53,8 @@ var (
 	Fscanf  = fmt.Fscanf
 )
 
+func Nop(...any) {}
+
 func Ref[T any](v T) *T { return &v }
 
 func Val[T any](v *T) T { return IfThenElse(v == nil, *new(T), *v) }

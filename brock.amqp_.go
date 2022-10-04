@@ -104,24 +104,27 @@ func (_amqp) Consume(req *AMQPConsumeRequest, h AMQPConsumeHandler) func(*AMQPCh
 		}
 
 		chDelivery, err := ch.Consume(req.Queue, req.Consumer, req.AutoAck, req.Exclusive, req.NoLocal, req.NoWait, req.Args)
-		done := err == nil
+		chDone, done := make(chan struct{}, 5), err == nil
 		req.ctx = ctx
-		go func() {
-			for !done {
-				var d *AMQPDelivery
-				select {
-				case <-ctx.Done():
-					err, done = ctx.Err(), true
-				case event := <-ch.NotifyCancel(make(chan string)):
-					err = Errorf("cancelled with subscription: %s", event)
-				case event := <-ch.NotifyClose(make(chan *AMQPError)):
-					err = event
-				case event := <-chDelivery:
-					d = &event
-				}
-				h.ConsumeAMQP(req, d, err)
+		for !done {
+			chDone <- struct{}{}
+			var d *AMQPDelivery
+			select {
+			case <-ctx.Done():
+				err, done = ctx.Err(), true
+			case event := <-ch.NotifyCancel(make(chan string)):
+				err = Errorf("cancelled with subscription: %s", event)
+			case event := <-ch.NotifyClose(make(chan *AMQPError)):
+				err = event
+			case event := <-chDelivery:
+				d = &event
 			}
-		}()
+
+			func() {
+				defer func() { _, _ = <-chDone, recover() }()
+				h.ConsumeAMQP(req, d, err)
+			}()
+		}
 	}
 }
 
