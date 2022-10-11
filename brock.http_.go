@@ -402,6 +402,11 @@ func (x *_http_mux) Handle(method, pattern string, h http.Handler) *_http_mux {
 		panic("path: should be canonical: use \"" + x.canonicalPath(pattern) + "\" instead of \"" + pattern + "\"")
 	}
 
+	x.entries[method+" "+pattern] = _http_mux_entry{x.parts(pattern), h}
+	return x
+}
+
+func (x *_http_mux) parts(pattern string) []string {
 	parts, keys := make([]string, 0), make(map[string]struct{})
 	for i, p := 0, 0; i < len(pattern); i++ {
 		if pattern[i] != '{' {
@@ -432,8 +437,7 @@ func (x *_http_mux) Handle(method, pattern string, h http.Handler) *_http_mux {
 		}
 	}
 
-	x.entries[method+" "+pattern] = _http_mux_entry{parts, h}
-	return x
+	return parts
 }
 
 // ServeHTTP implement the http.Handler
@@ -512,10 +516,11 @@ func (x *_http_mux) canonicalPath(s string) string {
 func (x *_http_mux) parse(pattern string, n int, u url.Values, k string) (int, url.Values) {
 	e := x.entries[k]
 	for i, part := range e.parts {
-		if len(part) > 0 && part[0] != '{' && part[len(part)-1] != '}' { // static
+		switch {
+		case x.isStatic(part):
 			nn := strings.Index(pattern[n:], part)
 			n = n + len(part) + nn
-		} else if len(part) > 2 && part[0] == '{' && part[len(part)-1] == '}' { // vars
+		case x.isVars(part):
 			key, val := part[1:len(part)-1], ""
 			if i < len(e.parts)-1 {
 				next := e.parts[i+1]
@@ -535,4 +540,12 @@ func (x *_http_mux) parse(pattern string, n int, u url.Values, k string) (int, u
 		}
 	}
 	return n, u
+}
+
+func (x *_http_mux) isStatic(part string) bool {
+	return len(part) > 0 && part[0] != '{' && part[len(part)-1] != '}'
+}
+
+func (x *_http_mux) isVars(part string) bool {
+	return len(part) > 2 && part[0] == '{' && part[len(part)-1] == '}'
 }

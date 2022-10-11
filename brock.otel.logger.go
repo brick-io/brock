@@ -22,30 +22,8 @@ func (o_t) NewLogger(ctx context.Context, c ...io.Writer) *Logger {
 		return l
 	}
 
-	ws, z := make([]io.Writer, 0), new(zerolog.Logger)
+	ws, z := (Logger{}).filter(c...), new(zerolog.Logger)
 	hook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, message string) { Nop(e, level, message) })
-
-	for _, v := range c {
-		if v == nil || v == io.Discard {
-			continue
-		} else if v == os.Stdout || v == os.Stderr {
-			v = zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
-				w.Out = v
-				if !isatty.IsTerminal(os.Stdout.Fd()) {
-					w.NoColor = true
-				}
-			})
-		} else if f, ok := v.(*os.File); ok && f != nil {
-			v = &lumberjack.Logger{
-				Filename:   f.Name(),
-				MaxSize:    100, // megabytes
-				MaxAge:     10,  // days
-				MaxBackups: 10,  // num
-				Compress:   true,
-			}
-		}
-		ws = append(ws, v)
-	}
 
 	if len(c) > 0 {
 		switch len(ws) {
@@ -86,4 +64,30 @@ func (x *Logger) ParseLevel(level string) (zerolog.Level, logrus.Level) {
 	z, _ := zerolog.ParseLevel(level)
 	l, _ := logrus.ParseLevel(level)
 	return z, l
+}
+
+func (Logger) filter(c ...io.Writer) []io.Writer {
+	ws := make([]io.Writer, 0)
+	for _, v := range c {
+		if v == nil || v == io.Discard {
+			continue
+		} else if v == os.Stdout || v == os.Stderr {
+			v = zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+				w.Out = v
+				if !isatty.IsTerminal(os.Stdout.Fd()) {
+					w.NoColor = true
+				}
+			})
+		} else if f, ok := v.(*os.File); ok && f != nil {
+			v = &lumberjack.Logger{
+				Filename:   f.Name(),
+				MaxSize:    100, // megabytes
+				MaxAge:     10,  // days
+				MaxBackups: 10,  // num
+				Compress:   true,
+			}
+		}
+		ws = append(ws, v)
+	}
+	return ws
 }

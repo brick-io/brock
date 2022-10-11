@@ -159,7 +159,7 @@ func handleConsent() http.Handler {
 		}
 		scopesStr = "<ul>" + scopesStr + "</ul>"
 
-		client_name := ""
+		clientName := ""
 		_ = clientID
 		// if info, err := new(_storage_client).GetByID(r.Context(), client_id); err == nil {
 		// 	if info, ok := info.(*client_info); ok {
@@ -177,8 +177,8 @@ func handleConsent() http.Handler {
 		// 	}
 		// }
 		body := `
-		<h2>Authorize ` + client_name + `</h2>
-		<p>Hi ` + "u.Name" + `, if you click Agree then ` + client_name + ` will have access to:</p>
+		<h2>Authorize ` + clientName + `</h2>
+		<p>Hi ` + "u.Name" + `, if you click Agree then ` + clientName + ` will have access to:</p>
 		` + scopesStr + `
 		`
 

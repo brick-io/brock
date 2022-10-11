@@ -22,13 +22,11 @@ func testAMQP(t *testing.T) {
 	conn, err := load()
 	Expect(err).To(Succeed())
 
-	_, _, _, _ = conn.Major, conn.Minor, conn.Properties, conn.Locales
+	brock.Nop(conn.Major, conn.Minor, conn.Properties, conn.Locales)
 
 	ch, err := conn.Channel()
 	Expect(err).To(Succeed())
-	onCancel := func(s string) {
-		//
-	}
+	onCancel := func(s string) { brock.Nop(s) }
 	onClose := func(err error) {
 		var e *brock.AMQPError
 		if errors.As(err, &e) {
@@ -43,38 +41,36 @@ func testAMQP(t *testing.T) {
 			ch, err = conn.Channel()
 		}
 	}
-	onFlow := func(b bool) {
-		//
-	}
+	onFlow := func(b bool) { brock.Nop(b) }
 
 	ch = brock.Apply(ch,
 		amqp.WithOnCancel(onCancel),
 		amqp.WithOnClose(onClose),
 		amqp.WithOnFlow(onFlow),
-		amqp.Consume(new(brock.AMQPConsumeRequest).
-			WithContext(ctx, "", "", false, false, false, false, nil),
-			brock.AMQPConsumeHandlerFunc(func(r *brock.AMQPConsumeRequest, d *brock.AMQPDelivery, err error) {
-				_ = r.Context()
+		amqp.Consume(ctx,
+			&brock.AMQPConsumeRequest{
+				//
+			},
+			brock.AMQPConsumeHandlerFunc(func(ctx context.Context, d *brock.AMQPDelivery, err error) {
+				brock.Nop(ctx, d, err)
 			}),
 		),
-		amqp.Consume(new(brock.AMQPConsumeRequest).
-			WithContext(ctx, "", "", false, false, false, false, nil),
-			brock.AMQPConsumeHandlerFunc(func(r *brock.AMQPConsumeRequest, d *brock.AMQPDelivery, err error) {
-				_ = r.Context()
+		amqp.Consume(ctx,
+			&brock.AMQPConsumeRequest{
+				//
+			},
+			brock.AMQPConsumeHandlerFunc(func(ctx context.Context, d *brock.AMQPDelivery, err error) {
+				brock.Nop(ctx, d, err)
 			}),
 		),
 	)
 
-	_, _, _ = amqp.Publish(new(brock.AMQPPublishRequest).
-		WithContext(ctx, "", "", false, false, nil),
-		ch,
-	)
-	_, _, _ = amqp.Publish(new(brock.AMQPPublishRequest).
-		WithContext(ctx, "", "", false, false, nil),
-		ch,
-	)
-	_, _, _ = amqp.Publish(new(brock.AMQPPublishRequest).
-		WithContext(ctx, "", "", false, false, nil),
-		ch,
-	)
+	c, r, err := amqp.Publish(ctx, ch, &brock.AMQPPublishRequest{
+		//
+	})
+	brock.Nop(c, r, err)
+	c, r, err = amqp.Publish(ctx, ch, &brock.AMQPPublishRequest{
+		//
+	})
+	brock.Nop(c, r, err)
 }
