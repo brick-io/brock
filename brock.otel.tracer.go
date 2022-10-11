@@ -100,10 +100,10 @@ func (o_t) NewTracer(ctx context.Context, c *TracerConfiguration) *Tracer {
 		sdk_resource.WithProcess(),
 		sdk_resource.WithContainer(),
 	)
-	IfThenElse(err != nil, func() {}, func() { panic(err) })()
+	IfThenElse(err != nil, func() { Nop() }, func() { panic(err) })()
 
 	res, err = sdk_resource.Merge(res, sdk_resource.Default())
-	IfThenElse(err != nil, func() {}, func() { panic(err) })()
+	IfThenElse(err != nil, func() { Nop() }, func() { panic(err) })()
 
 	res, err = sdk_resource.Merge(res, sdk_resource.NewWithAttributes(
 		semconv.SchemaURL,
@@ -116,7 +116,7 @@ func (o_t) NewTracer(ctx context.Context, c *TracerConfiguration) *Tracer {
 		semconv.DeploymentEnvironmentKey.String(new(Metadata).Load(ctx).Environment),
 	))
 
-	IfThenElse(err != nil, func() {}, func() { panic(err) })()
+	IfThenElse(err != nil, func() { Nop() }, func() { panic(err) })()
 
 	tp := sdk_trace.NewTracerProvider(
 		sdk_trace.WithBatcher(spanExporter),

@@ -65,17 +65,17 @@ func (x _generate_authorization_code) Token(ctx context.Context, data *oauth2.Ge
 }
 
 var (
-	_ oauth2.ClientInfo = (*client_info)(nil)
-	_ oauth2.TokenInfo  = (*token_info)(nil)
+	_ oauth2.ClientInfo = (*clientInfo)(nil)
+	_ oauth2.TokenInfo  = (*tokenInfo)(nil)
 )
 
-type client_info struct { // extend the client info
+type clientInfo struct { // extend the client info
 	*models.Client
 
 	Name string
 }
 
-type token_info struct { // extend the token info
+type tokenInfo struct { // extend the token info
 	*models.Token
 
 	ID string

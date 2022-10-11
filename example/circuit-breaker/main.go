@@ -27,7 +27,7 @@ type circuit_breaker struct {
 	c circuit_breaker_counter
 }
 
-func (x *circuit_breaker) OnTransition(state, action, nextState string) {}
+func (x *circuit_breaker) OnTransition(state, action, nextState string) { brock.Nop() }
 
 func (x *circuit_breaker) OnBefore() error {
 	if x.FSM.CurrentState() == "open" {

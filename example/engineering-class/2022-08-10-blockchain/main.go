@@ -27,54 +27,55 @@ var (
 )
 
 func main() {
-	the_block := &Block{id: xid.New().Bytes()}
+	theBlock := &Block{id: xid.New().Bytes()}
 	var err error
 
 	Alex := &Account{id: xid.New().Bytes(), name: "Alex"}
 	Bayu := &Account{id: xid.New().Bytes(), name: "Bayu"}
 	Chad := &Account{id: xid.New().Bytes(), name: "Chad"}
+	format := "%+v, %v\n\n"
 
-	the_block, err = the_block.Chain(&Record{
+	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 100, src: _GOD, dst: Alex,
 	})
-	brock.Printf("%+v, %v\n\n", the_block.record, err)
+	brock.Printf(format, theBlock.record, err)
 
-	the_block, err = the_block.Chain(&Record{
+	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 100, src: _GOD, dst: Bayu,
 	})
-	brock.Printf("%+v, %v\n\n", the_block.record, err)
+	brock.Printf(format, theBlock.record, err)
 
-	the_block, err = the_block.Chain(&Record{
+	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Alex, dst: Bayu,
 	})
-	brock.Printf("%+v, %v\n\n", the_block.record, err)
+	brock.Printf(format, theBlock.record, err)
 
-	the_block, err = the_block.Chain(&Record{
+	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Alex, dst: Bayu,
 	})
-	brock.Printf("%+v, %v\n\n", the_block.record, err)
+	brock.Printf(format, theBlock.record, err)
 
-	the_block, err = the_block.Chain(&Record{
+	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Alex, dst: Bayu,
 	})
-	brock.Printf("%+v, %v\n\n", the_block.record, err)
+	brock.Printf(format, theBlock.record, err)
 
-	the_block, err = the_block.Chain(&Record{
+	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Bayu, dst: Chad,
 	})
-	brock.Printf("%+v, %v\n\n", the_block.record, err)
+	brock.Printf(format, theBlock.record, err)
 
-	the_block, err = the_block.Chain(&Record{
+	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Bayu, dst: Chad,
 	})
-	brock.Printf("%+v, %v\n\n", the_block.record, err)
+	brock.Printf(format, theBlock.record, err)
 }
 
 // Account

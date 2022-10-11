@@ -35,7 +35,7 @@ func (fsm) Create(init string, fn FSMOnTransition, tx FSMTransition) (FSM, error
 		}
 	}
 	if fn == nil {
-		fn = func(state, action, next string) {}
+		fn = func(state, action, next string) { Nop(state, action, next) }
 	}
 
 	return &fsm{new(sync.Mutex), init, fn, tx}, nil

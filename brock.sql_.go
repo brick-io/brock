@@ -274,14 +274,14 @@ func (x _sql_box_begin_tx) Wrap(tx func() error) error {
 // =============================================================================
 
 func (_sql) RoundRobin(conns ...SQLConn) SQLConn {
-	conns_ := make([]SQLConn, 0)
+	conns2 := make([]SQLConn, 0)
 	for _, v := range conns {
 		if v != nil {
-			conns_ = append(conns_, v)
+			conns2 = append(conns2, v)
 		}
 	}
 
-	return &_sql_roundrobin{conns_, 0, new(sync.Mutex)}
+	return &_sql_roundrobin{conns2, 0, new(sync.Mutex)}
 }
 
 type _sql_roundrobin struct {

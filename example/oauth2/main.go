@@ -16,27 +16,33 @@ import (
 )
 
 func main() {
-	var o2 *server.Server = oauth2Server()
+	var (
+		o2 *server.Server = oauth2Server()
+
+		GET                = http.MethodGet
+		GET_POST           = http.MethodGet + "," + http.MethodPost
+		GET_PUT_POST_PATCH = http.MethodGet + "," + http.MethodPut + "," + http.MethodPost + "," + http.MethodPatch
+	)
 	mux := brock.HTTP.Mux()
-	mux.Handle("GET", "/", handleWrite(http.StatusOK, []byte{}))
-	mux.Handle("GET", "/favicon.ico", handleWrite(http.StatusOK, []byte{}))
-	mux.Handle("GET,POST", "/authentication", handleLogin())
-	mux.Handle("GET,POST", "/oauth2/consent", handleConsent())
-	mux.Handle("GET,POST", "/oauth2/access_token", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle(GET, "/", handleWrite(http.StatusOK, []byte{}))
+	mux.Handle(GET, "/favicon.ico", handleWrite(http.StatusOK, []byte{}))
+	mux.Handle(GET_POST, "/authentication", handleLogin())
+	mux.Handle(GET_POST, "/oauth2/consent", handleConsent())
+	mux.Handle(GET_POST, "/oauth2/access_token", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := o2.HandleTokenRequest(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}))
-	mux.Handle("GET,POST", "/oauth2/authorization", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle(GET_POST, "/oauth2/authorization", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := o2.HandleAuthorizeRequest(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}))
-	mux.Handle("GET,PUT,POST,PATCH", "/me", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle(GET_PUT_POST_PATCH, "/me", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// brock.Printf("\n  %s %s\n", r.Method, "/me")
 		switch r.Method {
 		case http.MethodGet: // render
@@ -142,9 +148,9 @@ func handleConsent() http.Handler {
 			return
 		}
 
-		client_id, scope := "", ""
+		clientID, scope := "", ""
 		if u, err := url.Parse(next); err == nil {
-			client_id = u.Query().Get("client_id")
+			clientID = u.Query().Get("client_id")
 			scope = u.Query().Get("scope")
 		}
 		scopes, scopesStr := strings.Split(scope, " "), ""
@@ -154,7 +160,7 @@ func handleConsent() http.Handler {
 		scopesStr = "<ul>" + scopesStr + "</ul>"
 
 		client_name := ""
-		_ = client_id
+		_ = clientID
 		// if info, err := new(_storage_client).GetByID(r.Context(), client_id); err == nil {
 		// 	if info, ok := info.(*client_info); ok {
 		// 		client_name = info.Name
@@ -188,13 +194,14 @@ func handleLogin() http.Handler {
 				// brock.Println("\n  handleLogin", err, a.Get("next"))
 			}
 		}
-		text := bytes.ReplaceAll(_html_login, []byte("$message"),
+		msg := []byte("$message")
+		text := bytes.ReplaceAll(_html_login, msg,
 			[]byte(``),
 		)
-		text1 := bytes.ReplaceAll(_html_login, []byte("$message"),
+		text1 := bytes.ReplaceAll(_html_login, msg,
 			[]byte(`<blockquote> empty username or password </blockquote>`),
 		)
-		text2 := bytes.ReplaceAll(_html_login, []byte("$message"),
+		text2 := bytes.ReplaceAll(_html_login, msg,
 			[]byte(`<blockquote> username not found or password mismatch </blockquote>`),
 		)
 		switch r.Method {

@@ -10,28 +10,28 @@ import (
 )
 
 func (x _storage_sql) GetByID(ctx context.Context, id string) (oauth2.ClientInfo, error) {
-	return x.Client_Read(ctx, id)
+	return x.ClientRead(ctx, id)
 }
 func (x _storage_sql) Create(ctx context.Context, info oauth2.TokenInfo) error {
-	return x.Token_Create(ctx, info)
+	return x.TokenCreate(ctx, info)
 }
 func (x _storage_sql) RemoveByCode(ctx context.Context, code string) error {
-	return x.Token_Delete(ctx, code, "", "")
+	return x.TokenDelete(ctx, code, "", "")
 }
 func (x _storage_sql) RemoveByAccess(ctx context.Context, access string) error {
-	return x.Token_Delete(ctx, "", access, "")
+	return x.TokenDelete(ctx, "", access, "")
 }
 func (x _storage_sql) RemoveByRefresh(ctx context.Context, refresh string) error {
-	return x.Token_Delete(ctx, "", "", refresh)
+	return x.TokenDelete(ctx, "", "", refresh)
 }
 func (x _storage_sql) GetByCode(ctx context.Context, code string) (oauth2.TokenInfo, error) {
-	return x.Token_Read(ctx, code, "", "")
+	return x.TokenRead(ctx, code, "", "")
 }
 func (x _storage_sql) GetByAccess(ctx context.Context, access string) (oauth2.TokenInfo, error) {
-	return x.Token_Read(ctx, "", access, "")
+	return x.TokenRead(ctx, "", access, "")
 }
 func (x _storage_sql) GetByRefresh(ctx context.Context, refresh string) (oauth2.TokenInfo, error) {
-	return x.Token_Read(ctx, "", "", refresh)
+	return x.TokenRead(ctx, "", "", refresh)
 }
 
 var (
@@ -53,23 +53,23 @@ func (x *instance) StorageSQL() _storage_sql { return _storage_sql{SQLConn: x.SQ
 // =============================================================================
 // Client Storage
 
-func (x _storage_sql) Client_Create(ctx context.Context, info oauth2.ClientInfo) error {
+func (x _storage_sql) ClientCreate(ctx context.Context, info oauth2.ClientInfo) error {
 	return nil
 }
-func (x _storage_sql) Client_Read(ctx context.Context, id string) (oauth2.ClientInfo, error) {
+func (x _storage_sql) ClientRead(ctx context.Context, id string) (oauth2.ClientInfo, error) {
 	return nil, nil
 }
-func (x _storage_sql) Client_Delete(ctx context.Context, id string) error {
+func (x _storage_sql) ClientDelete(ctx context.Context, id string) error {
 	return nil
 }
 
 // =============================================================================
 // Token Storage
 
-func (x _storage_sql) Token_Create(ctx context.Context, info oauth2.TokenInfo) error {
+func (x _storage_sql) TokenCreate(ctx context.Context, info oauth2.TokenInfo) error {
 	return nil
 }
-func (x _storage_sql) Token_Read(ctx context.Context, code, access, refresh string) (oauth2.TokenInfo, error) {
+func (x _storage_sql) TokenRead(ctx context.Context, code, access, refresh string) (oauth2.TokenInfo, error) {
 	var c, a, r sql.NullString
 	switch {
 	default:
@@ -81,7 +81,7 @@ func (x _storage_sql) Token_Read(ctx context.Context, code, access, refresh stri
 	case code == "" && access == "" && refresh != "":
 		r = sql.NullString{String: refresh, Valid: true}
 	}
-	info, t, v, cre, exp, now := token_info{}, 0, "", time.Time{}, time.Time{}, time.Now()
+	info, t, v, cre, exp, now := tokenInfo{}, 0, "", time.Time{}, time.Time{}, time.Now()
 	err := brock.SQL.Box.Query(x.QueryContext(ctx, _sql_select_token, c, a, r)).Scan(func(i int) (pointers []any) {
 		return []any{
 			&info.ID,
@@ -113,12 +113,15 @@ func (x _storage_sql) Token_Read(ctx context.Context, code, access, refresh stri
 	}
 	return nil, nil
 }
-func (x _storage_sql) Token_Delete(ctx context.Context, code, access, refresh string) error {
+func (x _storage_sql) TokenDelete(ctx context.Context, code, access, refresh string) error {
 	switch {
 	default:
+		return ErrUnimplemented
 	case code != "" && access == "" && refresh == "":
+		return ErrUnimplemented
 	case code == "" && access != "" && refresh == "":
+		return ErrUnimplemented
 	case code == "" && access == "" && refresh != "":
+		return ErrUnimplemented
 	}
-	return nil
 }

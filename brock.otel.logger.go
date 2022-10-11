@@ -23,7 +23,7 @@ func (o_t) NewLogger(ctx context.Context, c ...io.Writer) *Logger {
 	}
 
 	ws, z := make([]io.Writer, 0), new(zerolog.Logger)
-	hook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, message string) {})
+	hook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, message string) { Nop(e, level, message) })
 
 	for _, v := range c {
 		if v == nil || v == io.Discard {

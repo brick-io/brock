@@ -53,7 +53,15 @@ var (
 	Fscanf  = fmt.Fscanf
 )
 
-func Nop(...any) {}
+// Nop is not really doing anything,
+// just there for us not to use the underscore
+//
+//	Nop(a, err)
+func Nop(...any) {
+	// Nop is not really doing anything,
+	// just there for us not to use the underscore
+	//  Nop(a, err)
+}
 
 func Ref[T any](v T) *T { return &v }
 

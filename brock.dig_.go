@@ -21,7 +21,7 @@ type Dig struct {
 
 // A ...
 func (d *Dig) A(ctx context.Context, domain string) ([]*dns.A, error) {
-	m := _dig_newMsg(dns.TypeA, domain)
+	m := digNewMsg(dns.TypeA, domain)
 	res, err := d.exchangeWithRetry(ctx, m)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func (d *Dig) A(ctx context.Context, domain string) ([]*dns.A, error) {
 
 // NS ...
 func (d *Dig) NS(ctx context.Context, domain string) ([]*dns.NS, error) {
-	m := _dig_newMsg(dns.TypeNS, domain)
+	m := digNewMsg(dns.TypeNS, domain)
 	res, err := d.exchangeWithRetry(ctx, m)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (d *Dig) NS(ctx context.Context, domain string) ([]*dns.NS, error) {
 
 // CNAME ...
 func (d *Dig) CNAME(ctx context.Context, domain string) ([]*dns.CNAME, error) {
-	m := _dig_newMsg(dns.TypeCNAME, domain)
+	m := digNewMsg(dns.TypeCNAME, domain)
 	res, err := d.exchangeWithRetry(ctx, m)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (d *Dig) CNAME(ctx context.Context, domain string) ([]*dns.CNAME, error) {
 
 // PTR ...
 func (d *Dig) PTR(ctx context.Context, domain string) ([]*dns.PTR, error) {
-	m := _dig_newMsg(dns.TypePTR, domain)
+	m := digNewMsg(dns.TypePTR, domain)
 	res, err := d.exchangeWithRetry(ctx, m)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (d *Dig) PTR(ctx context.Context, domain string) ([]*dns.PTR, error) {
 
 // TXT ...
 func (d *Dig) TXT(ctx context.Context, domain string) ([]*dns.TXT, error) {
-	m := _dig_newMsg(dns.TypeTXT, domain)
+	m := digNewMsg(dns.TypeTXT, domain)
 	res, err := d.exchangeWithRetry(ctx, m)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (d *Dig) TXT(ctx context.Context, domain string) ([]*dns.TXT, error) {
 
 // AAAA ...
 func (d *Dig) AAAA(ctx context.Context, domain string) ([]*dns.AAAA, error) {
-	m := _dig_newMsg(dns.TypeAAAA, domain)
+	m := digNewMsg(dns.TypeAAAA, domain)
 	res, err := d.exchangeWithRetry(ctx, m)
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func (d *Dig) AAAA(ctx context.Context, domain string) ([]*dns.AAAA, error) {
 
 // MX ...
 func (d *Dig) MX(ctx context.Context, domain string) ([]*dns.MX, error) {
-	msg := _dig_newMsg(dns.TypeMX, domain)
+	msg := digNewMsg(dns.TypeMX, domain)
 	res, err := d.exchangeWithRetry(ctx, msg)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (d *Dig) MX(ctx context.Context, domain string) ([]*dns.MX, error) {
 
 // SRV ...
 func (d *Dig) SRV(ctx context.Context, domain string) ([]*dns.SRV, error) {
-	msg := _dig_newMsg(dns.TypeSRV, domain)
+	msg := digNewMsg(dns.TypeSRV, domain)
 	res, err := d.exchangeWithRetry(ctx, msg)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (d *Dig) SRV(ctx context.Context, domain string) ([]*dns.SRV, error) {
 
 // CAA ...
 func (d *Dig) CAA(ctx context.Context, domain string) ([]*dns.CAA, error) {
-	msg := _dig_newMsg(dns.TypeCAA, domain)
+	msg := digNewMsg(dns.TypeCAA, domain)
 	res, err := d.exchangeWithRetry(ctx, msg)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (d *Dig) CAA(ctx context.Context, domain string) ([]*dns.CAA, error) {
 
 // SPF ...
 func (d *Dig) SPF(ctx context.Context, domain string) ([]*dns.SPF, error) {
-	msg := _dig_newMsg(dns.TypeSPF, domain)
+	msg := digNewMsg(dns.TypeSPF, domain)
 	res, err := d.exchangeWithRetry(ctx, msg)
 	if err != nil {
 		return nil, err
@@ -302,7 +302,7 @@ func (d *Dig) conn(ctx context.Context) (net.Conn, error) {
 		di.Deadline = t
 	}
 	if d.LocalAddr != "" {
-		di.LocalAddr, err = _dig_resolveLocalAddr(d.protocol(), d.LocalAddr)
+		di.LocalAddr, err = digResolveLocalAddr(d.protocol(), d.LocalAddr)
 	}
 	return di.DialContext(ctx, d.protocol(), remoteaddr)
 }
@@ -403,7 +403,7 @@ func (d *Dig) edns0clientsubnet(m *dns.Msg) {
 	m.Extra = append(m.Extra, o)
 }
 
-func _dig_randserver(servers []string) string {
+func digRandserver(servers []string) string {
 	length := len(servers)
 	switch length {
 	case 0:
@@ -415,7 +415,7 @@ func _dig_randserver(servers []string) string {
 	return servers[r.Intn(length)]
 }
 
-func _dig_resolveLocalAddr(network string, laddr string) (net.Addr, error) {
+func digResolveLocalAddr(network string, laddr string) (net.Addr, error) {
 	network = strings.ToLower(network)
 	laddr += ":0"
 	switch network {
@@ -427,7 +427,7 @@ func _dig_resolveLocalAddr(network string, laddr string) (net.Addr, error) {
 	return nil, Errorf("unknown network:" + network)
 }
 
-func _dig_newMsg(Type uint16, domain string) *dns.Msg {
+func digNewMsg(Type uint16, domain string) *dns.Msg {
 	domain = dns.Fqdn(domain)
 	msg := new(dns.Msg)
 	msg.Id = dns.Id()
