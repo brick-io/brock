@@ -10,7 +10,7 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func test_sql(t *testing.T) {
+func testSQL(t *testing.T) {
 	t.Parallel()
 
 	Expect := NewWithT(t).Expect

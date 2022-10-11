@@ -8,7 +8,7 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func test_crypto(t *testing.T) {
+func testCrypto(t *testing.T) {
 	const (
 		msg = "To infinity, and beyond!"
 		sig = "Buzz Lightyear, not Aldrin"

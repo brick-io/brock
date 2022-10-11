@@ -9,7 +9,7 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func test_parser(t *testing.T) {
+func testParser(t *testing.T) {
 	t.Parallel()
 	Expect := NewWithT(t).Expect
 

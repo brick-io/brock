@@ -9,7 +9,7 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func test_dig(t *testing.T) {
+func testDig(t *testing.T) {
 	ctx := context.Background()
 	dig := brock.Dig{}
 

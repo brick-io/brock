@@ -12,7 +12,7 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func test_amqp(t *testing.T) {
+func testAMQP(t *testing.T) {
 	Expect := NewWithT(t).Expect
 	ctx := context.Background()
 

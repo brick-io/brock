@@ -14,14 +14,14 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func test_http(t *testing.T) {
+func testHTTP(t *testing.T) {
 	t.Parallel()
 
-	_ = t.Run("middleware", test_http_middleware)
-	_ = t.Run("mux", test_http_mux)
+	_ = t.Run("middleware", testHTTPmiddleware)
+	_ = t.Run("mux", testHTTPmux)
 }
 
-func test_http_middleware(t *testing.T) {
+func testHTTPmiddleware(t *testing.T) {
 	t.Parallel()
 	Expect := NewWithT(t).Expect
 
@@ -73,7 +73,7 @@ func test_http_middleware(t *testing.T) {
 	Expect(string(p)).To(Equal(str + " "))
 }
 
-func test_http_mux(t *testing.T) {
+func testHTTPmux(t *testing.T) {
 	t.Parallel()
 
 	Expect := NewWithT(t).Expect

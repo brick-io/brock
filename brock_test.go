@@ -2,12 +2,12 @@ package brock_test
 
 import "testing"
 
-func Test_Brock(t *testing.T) {
+func TestBrock(t *testing.T) {
 	t.Parallel()
 
-	_ = t.Run("crypto", test_crypto)
-	_ = t.Run("fsm", test_fsm)
-	_ = t.Run("http", test_http)
-	_ = t.Run("parser", test_parser)
-	_ = t.Run("sql", test_sql)
+	_ = t.Run("crypto", testCrypto)
+	_ = t.Run("fsm", testFSM)
+	_ = t.Run("http", testHTTP)
+	_ = t.Run("parser", testParser)
+	_ = t.Run("sql", testSQL)
 }

@@ -7,7 +7,7 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func test_fsm(t *testing.T) {
+func testFSM(t *testing.T) {
 	t.Parallel()
 
 	Expect := NewWithT(t).Expect

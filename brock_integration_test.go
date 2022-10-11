@@ -4,9 +4,9 @@ package brock_test
 
 import "testing"
 
-func Test_Integration_Brock(t *testing.T) {
+func TestIntegrationBrock(t *testing.T) {
 	t.Parallel()
 
-	_ = t.Run("amqp", test_amqp)
-	_ = t.Run("dig", test_dig)
+	_ = t.Run("amqp", testAMQP)
+	_ = t.Run("dig", testDig)
 }
