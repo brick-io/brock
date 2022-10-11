@@ -528,18 +528,21 @@ func (x *_http_mux) parse(pattern string, n int, u url.Values, k string) (int, u
 				if nn > 0 {
 					val = pattern[n:][:nn]
 					n = nn
+					x.setKV(u, key, val)
 				}
-			} else {
-				if n < len(pattern) {
-					val = pattern[n:]
-				}
-			}
-			if len(val) > 0 {
-				u.Set(key, val)
+			} else if n < len(pattern) {
+				val = pattern[n:]
+				x.setKV(u, key, val)
 			}
 		}
 	}
 	return n, u
+}
+
+func (x *_http_mux) setKV(u url.Values, key, val string) {
+	if len(val) > 0 {
+		u.Set(key, val)
+	}
 }
 
 func (x *_http_mux) isStatic(part string) bool {
