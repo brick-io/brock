@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/generates"
@@ -24,7 +25,7 @@ type instance struct {
 
 func (x *instance) Manager() oauth2.Manager {
 	if x.SQLConn == nil {
-		brock.SQL.Open("postgres://oauth_user:oauth_password@localhost:5432/oauth2_db")
+		x.SQLConn, _ = brock.SQL.Open(os.Getenv("OAUTH2_DSN"))
 	}
 	m := manage.NewDefaultManager()
 	m.MapTokenStorage(x.StorageSQL())

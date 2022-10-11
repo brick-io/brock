@@ -114,14 +114,14 @@ func (x _storage_sql) TokenRead(ctx context.Context, code, access, refresh strin
 	return nil, nil
 }
 func (x _storage_sql) TokenDelete(ctx context.Context, code, access, refresh string) error {
-	switch {
-	default:
-		return ErrUnimplemented
-	case code != "" && access == "" && refresh == "":
-		return ErrUnimplemented
-	case code == "" && access != "" && refresh == "":
-		return ErrUnimplemented
-	case code == "" && access == "" && refresh != "":
-		return ErrUnimplemented
-	}
+	// switch {
+	// default:
+	// case code != "" && access == "" && refresh == "":
+	// 	return ErrUnimplemented
+	// case code == "" && access != "" && refresh == "":
+	// 	return ErrUnimplemented
+	// case code == "" && access == "" && refresh != "":
+	// 	return ErrUnimplemented
+	// }
+	return ErrUnimplemented
 }
