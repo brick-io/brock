@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rs/xid"
+
 	"go.onebrick.io/brock"
 )
 
@@ -20,6 +21,7 @@ start with genesis the first blockchain_like info,
 then the first tx usually marking an ICO (initial coin offering)
 */
 
+//nolint:gochecknoglobals
 var (
 	_GOD = &Account{id: xid.New().Bytes(), name: "_GOD"}
 
@@ -28,6 +30,7 @@ var (
 
 func main() {
 	theBlock := &Block{id: xid.New().Bytes()}
+
 	var err error
 
 	Alex := &Account{id: xid.New().Bytes(), name: "Alex"}
@@ -37,49 +40,49 @@ func main() {
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
-		amt: 100, src: _GOD, dst: Alex,
+		amt: (100), src: _GOD, dst: Alex,
 	})
 	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
-		amt: 100, src: _GOD, dst: Bayu,
+		amt: (100), src: _GOD, dst: Bayu,
 	})
 	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
-		amt: 35, src: Alex, dst: Bayu,
+		amt: (35), src: Alex, dst: Bayu,
 	})
 	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
-		amt: 35, src: Alex, dst: Bayu,
+		amt: (35), src: Alex, dst: Bayu,
 	})
 	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
-		amt: 35, src: Alex, dst: Bayu,
+		amt: (35), src: Alex, dst: Bayu,
 	})
 	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
-		amt: 35, src: Bayu, dst: Chad,
+		amt: (35), src: Bayu, dst: Chad,
 	})
 	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
-		amt: 35, src: Bayu, dst: Chad,
+		amt: (35), src: Bayu, dst: Chad,
 	})
 	_, _ = brock.Printf(format, theBlock.record, err)
 }
 
 // Account
-// contains Account info
+// contains Account info.
 type Account struct {
 	id   []byte
 	name string
@@ -87,13 +90,14 @@ type Account struct {
 
 func (a *Account) String() string {
 	id, _ := xid.FromBytes(a.id)
-	return "[..." + last(3, id.String()) + " " + a.name + "]"
+
+	return "[..." + last((3), id.String()) + " " + a.name + "]"
 }
 
 // Record
 // from src to dst, amassing some amt
 // srcBalance & dstBalance snapshot the last balance after a Record is written
-// providing fast lookup on the last balance
+// providing fast lookup on the last balance.
 type Record struct {
 	id []byte
 
@@ -111,6 +115,7 @@ func (r *Record) String() string {
 	if r.src == _GOD {
 		srcLastBalance = "♾️"
 	}
+
 	return brock.Sprintf(
 		"%x\n[%s] %s -> %s (%d) %d -> %s",
 		r.Hash(),
@@ -130,11 +135,12 @@ func (r *Record) Hash() []byte {
 	data = append(data, r.dst.id...)
 	h := sha256.Sum256(data)
 	r.id = h[:]
+
 	return r.id
 }
 
 // Block
-// is a unit of distributed ledger, wrapping the record
+// is a unit of distributed ledger, wrapping the record.
 type Block struct {
 	id []byte
 
@@ -146,10 +152,12 @@ type Block struct {
 }
 
 // Chain
-// new block to the current block, then return the new block
+// new block to the current block, then return the new block.
 func (b *Block) Chain(record *Record) (*Block, error) {
-	var srcLastBlock, dstLastBlock *Block
-	var srcBalance, dstBalance uint
+	var (
+		srcLastBlock, dstLastBlock *Block
+		srcBalance, dstBalance     uint
+	)
 
 	if i := 0; record.src == _GOD {
 		srcBalance += record.amt // normalize to 0
@@ -195,6 +203,7 @@ func (b *Block) LastBlockOf(a *Account) (*Block, int) {
 	} else if b.record != nil && bytes.Equal(a.id, b.record.dst.id) {
 		return b, -1
 	}
+
 	return b.parent.LastBlockOf(a)
 }
 

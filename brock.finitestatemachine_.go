@@ -2,6 +2,7 @@ package brock
 
 import "sync"
 
+//nolint:gochecknoglobals
 var FiniteStateMachine fsm
 
 type fsm struct {
@@ -34,6 +35,7 @@ func (fsm) Create(init string, fn FSMOnTransition, tx FSMTransition) (FSM, error
 			}
 		}
 	}
+
 	if fn == nil {
 		fn = func(state, action, next string) { Nop(state, action, next) }
 	}
@@ -51,5 +53,6 @@ func (x *fsm) Next(action string) (nextState string, ok bool) {
 			func() { x.Lock(); x.curr = nextState; x.Unlock() }()
 		}
 	}
+
 	return nextState, ok
 }

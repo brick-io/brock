@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var (
 	Crypto crypto
 )
@@ -84,8 +84,7 @@ func (crypto_rsa) Validate(key *rsa.PrivateKey) error {
 		key = &rsa.PrivateKey{}
 	}
 
-	err := key.Validate()
-	if err != nil {
+	if err := key.Validate(); err != nil {
 		return err
 	}
 
@@ -164,7 +163,7 @@ func (crypto_ecdsa) Validate(key *ecdsa.PrivateKey) error {
 		key = &ecdsa.PrivateKey{PublicKey: ecdsa.PublicKey{}}
 	}
 
-	onCurve, h := true, sha256.Sum256(crypto{}.Nonce(24))
+	onCurve, h := true, sha256.Sum256(crypto{}.Nonce((24)))
 	onCurve = onCurve && key.Curve != nil
 	onCurve = onCurve && key.PublicKey.Curve != nil
 	onCurve = onCurve && key.IsOnCurve(key.X, key.Y)
@@ -201,13 +200,13 @@ func (crypto_ed25519) Generate() (ed25519.PublicKey, ed25519.PrivateKey, error) 
 	return ed25519.GenerateKey(rand.Reader)
 }
 
-func (crypto_ed25519) ReadKeypair(keyReader, pubReader io.Reader) (ed25519.PrivateKey, ed25519.PublicKey, error) {
-	key, err := read[ed25519.PrivateKey](keyReader)
+func (crypto_ed25519) ReadKeypair(keyR, pubR io.Reader) (ed25519.PrivateKey, ed25519.PublicKey, error) {
+	key, err := read[ed25519.PrivateKey](keyR)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pub, err := read[ed25519.PublicKey](pubReader)
+	pub, err := read[ed25519.PublicKey](pubR)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -215,21 +214,21 @@ func (crypto_ed25519) ReadKeypair(keyReader, pubReader io.Reader) (ed25519.Priva
 	return key, pub, nil
 }
 
-func (crypto_ed25519) WriteKeypair(keyWriter, pubWriter io.Writer, key ed25519.PrivateKey, pub ed25519.PublicKey) error {
+func (crypto_ed25519) WriteKeypair(keyW, pubW io.Writer, key ed25519.PrivateKey, pub ed25519.PublicKey) error {
 	err := crypto_ed25519{}.Validate(key, pub)
 	if err == nil {
-		err = write(keyWriter, key)
+		err = write(keyW, key)
 	}
 
 	if err == nil {
-		err = write(pubWriter, pub)
+		err = write(pubW, pub)
 	}
 
 	return err
 }
 
 func (crypto_ed25519) Validate(key ed25519.PrivateKey, pub ed25519.PublicKey) error {
-	msg := crypto{}.Nonce(24)
+	msg := crypto{}.Nonce((24))
 
 	sig := ed25519.Sign(key, msg)
 	if !ed25519.Verify(pub, msg, sig) {
@@ -274,40 +273,40 @@ func (crypto_nacl) secretHash(secret []byte) *[32]byte {
 
 type crypto_nacl_box struct{}
 
-// nolint: nonamedreturns
+//nolint:nonamedreturns
 func (crypto_nacl_box) Generate() (publicKey, privateKey *[32]byte, err error) {
 	return box.GenerateKey(rand.Reader)
 }
 
-// nolint: nonamedreturns
+//nolint:nonamedreturns
 func (crypto_nacl_box) Seal(plaintext []byte, peersPublicKey, privateKey *[32]byte) (ciphertext []byte) {
 	nonce := crypto_nacl{}.nonce()
 
 	return box.Seal(nonce[:], plaintext, &nonce, peersPublicKey, privateKey)
 }
 
-// nolint: nonamedreturns
+//nolint:nonamedreturns
 func (crypto_nacl_box) Open(ciphertext []byte, peersPublicKey, privateKey *[32]byte) (plaintext []byte, ok bool) {
 	rest, nonce := crypto_nacl{}.extract(ciphertext)
 
 	return box.Open(nil, rest, &nonce, peersPublicKey, privateKey)
 }
 
-// nolint: nonamedreturns
+//nolint:nonamedreturns
 func (crypto_nacl_box) SealWithSharedKey(plaintext []byte, sharedKey *[32]byte) (ciphertext []byte) {
 	nonce := crypto_nacl{}.nonce()
 
 	return box.SealAfterPrecomputation(nonce[:], plaintext, &nonce, sharedKey)
 }
 
-// nolint: nonamedreturns
+//nolint:nonamedreturns
 func (crypto_nacl_box) OpenWithSharedKey(ciphertext []byte, sharedKey *[32]byte) (plaintext []byte, ok bool) {
 	rest, nonce := crypto_nacl{}.extract(ciphertext)
 
 	return box.OpenAfterPrecomputation(nil, rest, &nonce, sharedKey)
 }
 
-// nolint: nonamedreturns
+//nolint:nonamedreturns
 func (crypto_nacl_box) SharedKey(peersPublicKey, privateKey *[32]byte) (_ *[32]byte) {
 	var sharedKey [32]byte
 
@@ -318,14 +317,14 @@ func (crypto_nacl_box) SharedKey(peersPublicKey, privateKey *[32]byte) (_ *[32]b
 
 type crypto_nacl_secretbox struct{}
 
-// nolint: nonamedreturns
+//nolint:nonamedreturns
 func (crypto_nacl_secretbox) Seal(plaintext, secret []byte) (ciphertext []byte) {
 	nonce := crypto_nacl{}.nonce()
 
 	return secretbox.Seal(nonce[:], plaintext, &nonce, crypto_nacl{}.secretHash(secret))
 }
 
-// nolint: nonamedreturns
+//nolint:nonamedreturns
 func (crypto_nacl_secretbox) Open(ciphertext, secret []byte) (plaintext []byte, ok bool) {
 	rest, nonce := crypto_nacl{}.extract(ciphertext)
 
@@ -347,7 +346,7 @@ type crypto_public_key_types interface {
 func read[T crypto_key_types](r io.Reader) (T, error) {
 	buf := &bytes.Buffer{}
 
-	_, err := io.Copy(buf, io.LimitReader(r, 1e9))
+	_, err := io.Copy(buf, io.LimitReader(r, (1e9)))
 	if err != nil {
 		return nil, err
 	}

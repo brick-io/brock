@@ -49,7 +49,7 @@ func (o_t) NewMeter(ctx context.Context, c *MeterConfiguration) *Meter {
 			otlpmetricgrpc.NewClient(
 				otlpmetricgrpc.WithInsecure(),
 				otlpmetricgrpc.WithEndpoint(c.OTLP.GRPC.URL),
-				otlpmetricgrpc.WithReconnectionPeriod(10*time.Second),
+				otlpmetricgrpc.WithReconnectionPeriod((10)*time.Second),
 			),
 		)))
 	case c.OTLP.HTTP.URL != "":

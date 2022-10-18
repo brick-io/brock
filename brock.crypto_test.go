@@ -45,7 +45,6 @@ func testCrypto(t *testing.T) {
 			plaintext, ok = box.Open(ciphertext, pub2, key1)
 			Expect(ok).To(BeTrue())
 			Expect(string(plaintext)).To(Equal(msg))
-
 		})
 		t.Run("secretbox", func(t *testing.T) {
 			t.Parallel()

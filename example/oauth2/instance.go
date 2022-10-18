@@ -9,6 +9,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/models"
 	"github.com/go-oauth2/oauth2/v4/store"
+
 	"go.onebrick.io/brock"
 )
 
@@ -19,6 +20,7 @@ func a() int {
 	_, _ = store.NewMemoryTokenStore()
 	_ = generates.NewAccessGenerate()
 	_ = generates.NewAuthorizeGenerate()
+
 	return 0
 }
 
@@ -30,6 +32,7 @@ func (x *instance) Manager() oauth2.Manager {
 	if x.SQLConn == nil {
 		x.SQLConn, _ = brock.SQL.Open(os.Getenv("OAUTH2_DSN"))
 	}
+
 	m := manage.NewDefaultManager()
 	m.MapTokenStorage(x.StorageSQL())
 	m.MapClientStorage(x.StorageSQL())
@@ -53,19 +56,25 @@ func (x *instance) AuthorizeGenerate() oauth2.AuthorizeGenerate {
 	return _generate_authorization_code{x}
 }
 
+type (
+	_gaart = _generate_access_and_refresh_token
+	_gac   = _generate_authorization_code
+)
+
 type _generate_access_and_refresh_token struct{ *instance }
 
-func (x _generate_access_and_refresh_token) Token(ctx context.Context, data *oauth2.GenerateBasic, isGenRefresh bool) (access, refresh string, err error) {
+func (x _gaart) Token(ctx context.Context, data *oauth2.GenerateBasic, isRefresh bool) (access, refresh string, err error) {
 	_ = data.Client.GetID()
 	_ = data.UserID
 	_ = data.TokenInfo.GetAccessCreateAt().Add(data.TokenInfo.GetAccessExpiresIn()).Unix()
-	return "<-->", "<-->", nil
+
+	return "<-1->", "<-2->", nil
 }
 
 type _generate_authorization_code struct{ *instance }
 
-func (x _generate_authorization_code) Token(ctx context.Context, data *oauth2.GenerateBasic) (code string, err error) {
-	return "<-->", nil
+func (x _gac) Token(ctx context.Context, data *oauth2.GenerateBasic) (code string, err error) {
+	return "<-3->", nil
 }
 
 var (

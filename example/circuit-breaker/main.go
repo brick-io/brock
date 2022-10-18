@@ -16,9 +16,9 @@ func main() {
 }
 
 var (
-	// // ErrTooManyRequests is returned when the CB state is half open and the requests count is over the cb maxRequests
-	// ErrTooManyRequests = brock.Errorf("too many requests")
-	// ErrOpenState is returned when the CB state is open
+	// ErrTooManyRequests is returned when the CB state is half open and the requests count is over the cb maxRequests.
+	ErrTooManyRequests = brock.Errorf("too many requests")
+	// ErrOpenState is returned when the CB state is open.
 	ErrOpenState = brock.Errorf("circuit breaker is open")
 )
 
@@ -33,11 +33,14 @@ func (x *circuit_breaker) OnBefore() error {
 	if x.FSM.CurrentState() == "open" {
 		return ErrOpenState
 	}
+
 	return nil
 }
+
 func (x *circuit_breaker) OnAfter(err error) error {
 	add, load := atomic.AddUint32, atomic.LoadUint32
 	add(&x.c.Requests, 1)
+
 	if err != nil {
 		add(&x.c.TotalFailures, 1)
 		add(&x.c.ConsecutiveFailures, 1)

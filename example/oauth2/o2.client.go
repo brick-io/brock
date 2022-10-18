@@ -24,8 +24,8 @@ func doclient() {
 
 	// Redirect user to consent page to ask for permission
 	// for the scopes specified above.
-	url := conf.AuthCodeURL(btoa(brock.Crypto.Nonce(24)), oauth2.AccessTypeOnline)
-	fmt.Printf("Visit the URL for the auth dialog: \n%v\n", url)
+	url := conf.AuthCodeURL(btoa(brock.Crypto.Nonce((24))), oauth2.AccessTypeOnline)
+	brock.Printf("Visit the URL for the auth dialog: \n%v\n", url)
 
 	// Use the authorization code that is pushed to the redirect
 	// URL. Exchange will do the handshake to retrieve the
@@ -35,6 +35,7 @@ func doclient() {
 	if _, err := fmt.Scan(&code); err != nil {
 		log.Fatal(err)
 	}
+
 	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
 		log.Fatal(err)

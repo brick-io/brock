@@ -16,19 +16,23 @@ func nameserver() (string, error) {
 	}
 	defer f.Close()
 	r := bufio.NewReader(f)
+
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil {
 			break
 		}
+
 		cols := strings.Fields(line)
-		if len(cols) < 2 {
+		if len(cols) < (2) {
 			continue
 		}
+
 		switch cols[0] {
 		case "nameserver":
 			return cols[1], nil
 		}
 	}
+
 	return "", errors.New("nameserver: not found")
 }

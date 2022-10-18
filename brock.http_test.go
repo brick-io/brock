@@ -45,6 +45,7 @@ func testHTTPmiddleware(t *testing.T) {
 				n, err := wr.Send(http.StatusInternalServerError, nil, nil)
 				Expect(err).To(Succeed())
 				Expect(n).To(BeNumerically(">", 1))
+
 				return
 			}
 
@@ -77,15 +78,17 @@ func testHTTPmux(t *testing.T) {
 		call     func()
 		recovery any
 	}
+
+	mux := brock.HTTP.Mux()
 	tests := map[string]test{
-		"method_1":  {func() { brock.HTTP.Mux().Handle("", "", nil) }, "method: empty"},
-		"method_2":  {func() { brock.HTTP.Mux().Handle("XXX", "/", nil) }, "method: invalid: XXX"},
-		"path_1":    {func() { brock.HTTP.Mux().Handle("GET", "", nil) }, "path: empty"},
-		"path_2":    {func() { brock.HTTP.Mux().Handle("GET", "ABC", nil) }, "path: should be canonical: use \"/abc\" instead of \"ABC\""},
-		"pattern_1": {func() { brock.HTTP.Mux().Handle("GET", "/aku/{id}{v}", nil) }, "pattern: need separator"},
-		"pattern_2": {func() { brock.HTTP.Mux().Handle("GET", "/aku/{id}/mau/{}", nil) }, "pattern: empty key"},
-		"pattern_3": {func() { brock.HTTP.Mux().Handle("GET", "/aku/{id}/mau/{id}", nil) }, "pattern: duplicate key: id"},
-		"ok":        {func() { brock.HTTP.Mux().Handle("GET", "/aku/{id}/mau/{v}/makan/nasi/{tipe}", nil) }, ""},
+		"method_1":  {func() { mux.Handle("", "", nil) }, "method: empty"},
+		"method_2":  {func() { mux.Handle("XXX", "/", nil) }, "method: invalid: XXX"},
+		"path_1":    {func() { mux.Handle("GET", "", nil) }, "path: empty"},
+		"path_2":    {func() { mux.Handle("GET", "ABC", nil) }, "path: should be canonical: use \"/abc\" instead of \"ABC\""},
+		"pattern_1": {func() { mux.Handle("GET", "/aku/{id}{v}", nil) }, "pattern: need separator"},
+		"pattern_2": {func() { mux.Handle("GET", "/aku/{id}/mau/{}", nil) }, "pattern: empty key"},
+		"pattern_3": {func() { mux.Handle("GET", "/aku/{id}/mau/{id}", nil) }, "pattern: duplicate key: id"},
+		"ok":        {func() { mux.Handle("GET", "/aku/{id}/mau/{v}/makan/nasi/{tipe}", nil) }, ""},
 	}
 
 	for name, test := range tests {
@@ -106,7 +109,7 @@ func testHTTPmux(t *testing.T) {
 		brock.HTTP.Header.WithKV("Content-Type", "text/plain; charset=utf-8"),
 		brock.HTTP.Header.WithKV("X-Content-Type-Options", "nosniff"),
 	)
-	mux := brock.HTTP.Mux().
+	mux = brock.HTTP.Mux().
 		Handle("GET,PUT,PATCH", "/aku/{id}_{v}/makan/{tipe}", handler).
 		Handle("GET,PUT,PATCH", "/aku", handler)
 	{
@@ -160,6 +163,7 @@ func (x assertResponse) EqualBody() bool { return bytes.Equal(x.body, x.w.Body.B
 func (x assertResponse) EqualHeader() bool {
 	actual := x.w.Result().Header
 	headerEq := len(x.header) == len(actual)
+
 	for k := range actual {
 		for i := range actual[k] {
 			headerEq = headerEq && i < len(x.header[k])
@@ -174,9 +178,11 @@ func (x assertResponse) Format() string {
 	if !x.EqualCode() {
 		format += "\nCode Expect: %d\n     Actual: %d"
 	}
+
 	if !x.EqualHeader() {
 		format += "\nHeader Expect: %s\n       Actual: %s"
 	}
+
 	if !x.EqualBody() {
 		format += "\nBody Expect: %q\n     Actual: %q"
 	}
@@ -187,9 +193,11 @@ func (x assertResponse) Args() []any {
 	if !x.EqualCode() {
 		args = append(args, x.code, x.w.Code)
 	}
+
 	if !x.EqualHeader() {
 		args = append(args, x.header, x.w.Header())
 	}
+
 	if !x.EqualBody() {
 		args = append(args, x.body, x.w.Body.Bytes())
 	}

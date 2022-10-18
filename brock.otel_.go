@@ -14,12 +14,9 @@ type o_t struct {
 	Code      o_t_code
 }
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var (
 	OpenTelemetry o_t
-
-	// sOUT = os.Stdout
-	// sERR = os.Stderr
 )
 
 type o_t_attribute struct{}
@@ -27,7 +24,7 @@ type o_t_attribute struct{}
 func (o_t_attribute) Key(k string) attribute.Key { return attribute.Key(k) }
 
 func (o_t_attribute) KeyValueHTTPServer(ctx context.Context, request *http.Request) []attribute.KeyValue {
-	kvs, name := make([]attribute.KeyValue, 0), new(Metadata).Load(ctx).Namespace
+	kvs, name := make([]attribute.KeyValue, 0), ""
 	kvs = append(kvs, semconv.HTTPServerNameKey.String(name))
 	kvs = append(kvs, semconv.HTTPServerAttributesFromHTTPRequest(name, request.URL.Path, request)...)
 	kvs = append(kvs, semconv.HTTPServerMetricAttributesFromHTTPRequest(name, request)...)

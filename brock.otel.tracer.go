@@ -113,7 +113,7 @@ func (o_t) NewTracer(ctx context.Context, c *TracerConfiguration) *Tracer {
 		semconv.NetHostNameKey.String(netHostName),
 		semconv.NetHostIPKey.StringSlice(netHostIPList),
 		semconv.OSNameKey.String(runtime.GOOS),
-		semconv.DeploymentEnvironmentKey.String(new(Metadata).Load(ctx).Environment),
+		// semconv.DeploymentEnvironmentKey.String(new(Metadata).Load(ctx).Environment),
 	))
 
 	IfThenElse(err != nil, func() { Nop() }, func() { panic(err) })()

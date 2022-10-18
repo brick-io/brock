@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/rs/xid"
+
 	"go.onebrick.io/brock"
 )
 
@@ -23,6 +24,7 @@ func main() {
 		GET_POST           = http.MethodGet + "," + http.MethodPost
 		GET_PUT_POST_PATCH = http.MethodGet + "," + http.MethodPut + "," + http.MethodPost + "," + http.MethodPatch
 	)
+
 	mux := brock.HTTP.Mux()
 	mux.Handle(GET, "/", handleWrite(http.StatusOK, []byte{}))
 	mux.Handle(GET, "/favicon.ico", handleWrite(http.StatusOK, []byte{}))
@@ -32,6 +34,7 @@ func main() {
 		err := o2.HandleTokenRequest(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+
 			return
 		}
 	}))
@@ -39,6 +42,7 @@ func main() {
 		err := o2.HandleAuthorizeRequest(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+
 			return
 		}
 	}))
@@ -55,11 +59,15 @@ func main() {
 			handleMePatch(o2).ServeHTTP(w, r)
 		}
 	}))
+
 	srv2 := http.Server{Addr: ":9096", Handler: mux}
+
 	go func() { doclient() }()
+
 	log.Fatal(srv2.ListenAndServe())
 }
 
+//nolint:gochecknoglobals
 var (
 	ErrUnimplemented = brock.Errorf("Unimplemented")
 	ErrNotFound      = brock.Errorf("Not Found")
@@ -89,6 +97,7 @@ var (
 			_, _ = copy(pub[:], p[:32]), copy(pvt[:], p[32:])
 			key = brock.Crypto.NaCl.Box.SharedKey(pub, pvt)
 		}
+
 		return
 	}()
 
@@ -99,6 +108,7 @@ var (
 		var p []byte
 		_ = Cipher{&p}.UnmarshalJSON([]byte(pvt_client_b64))
 		_, _ = brock.Println("CLIENT OK: ", bytes.Equal(expand(clientID), p))
+
 		return struct{}{}
 	}()
 
@@ -146,6 +156,7 @@ func handleConsent() http.Handler {
 		// _,_=brock.Println("\n  next:", next)
 		if consent == "agree" || consent == "cancel" {
 			http.Redirect(w, r, next, http.StatusTemporaryRedirect)
+
 			return
 		}
 
@@ -187,6 +198,7 @@ func handleConsent() http.Handler {
 		handleWrite(http.StatusOK, text).ServeHTTP(w, r)
 	})
 }
+
 func handleLogin() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if u, err := getUser(r); err != nil || u.ID == "" {
@@ -215,10 +227,12 @@ func handleLogin() http.Handler {
 			un, pw := r.Form.Get("username"), r.Form.Get("password")
 			if len(un) < 1 || len(pw) < 1 {
 				handleWrite(http.StatusBadRequest, text1).ServeHTTP(w, r)
+
 				return
 			}
 			if !(un == "stevejobs" && pw == "@ppL3") {
 				handleWrite(http.StatusBadRequest, text2).ServeHTTP(w, r)
+
 				return
 			}
 
@@ -238,6 +252,7 @@ func handleLogin() http.Handler {
 
 			if a, err := getAction(r.Form.Get("a")); err == nil && len(a) > 0 && a.Get("next") != "" {
 				http.Redirect(w, r, a.Get("next"), http.StatusTemporaryRedirect)
+
 				return
 			}
 		}
@@ -256,16 +271,19 @@ func handleMeGet(o2 *server.Server) http.Handler {
 		handleWrite(http.StatusOK, []byte{}).ServeHTTP(w, r)
 	})
 }
+
 func handleMePut(o2 *server.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleWrite(http.StatusOK, []byte{}).ServeHTTP(w, r)
 	})
 }
+
 func handleMePost(o2 *server.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleWrite(http.StatusOK, []byte{}).ServeHTTP(w, r)
 	})
 }
+
 func handleMePatch(o2 *server.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleWrite(http.StatusOK, []byte{}).ServeHTTP(w, r)
@@ -273,13 +291,15 @@ func handleMePatch(o2 *server.Server) http.Handler {
 }
 
 // getAction from query param, not using hash/fragment because by default
-// browser don't send this information to the server
+// browser don't send this information to the server.
 func getAction(a string) (u url.Values, err error) {
 	if s := ""; a != "" {
 		u, err = make(url.Values), Cipher{&s}.UnmarshalJSON([]byte(a))
+
 		for _, v := range []string{"next"} {
 			if strings.HasPrefix(s, v+":") {
 				u.Set(v, s[len(v)+1:])
+
 				return
 			}
 		}
@@ -289,9 +309,10 @@ func getAction(a string) (u url.Values, err error) {
 	return
 }
 
-// getUser from cookie
+// getUser from cookie.
 func getUser(r *http.Request) (u User, err error) {
 	now, c := time.Now(), (*http.Cookie)(nil)
+
 	if c, err = r.Cookie(cookie_key_user_token); err != nil {
 		//
 	} else if c.Expires.After(now) {
@@ -314,11 +335,13 @@ type Cipher struct{ any }
 
 func (c Cipher) String() string {
 	p, _ := c.MarshalJSON()
+
 	return string(p)
 }
 
 func (c Cipher) MarshalJSON() ([]byte, error) {
 	p, err := brock.JSON.Marshal(c.any)
+
 	return []byte(btoa(seal(p, key))), err
 }
 
@@ -333,6 +356,7 @@ func (c Cipher) UnmarshalJSON(p []byte) error {
 func btoa(p []byte) string {
 	return strings.TrimRight(base64.URLEncoding.EncodeToString(p), "=")
 }
+
 func atob(s string) ([]byte, error) {
 	for len(s)%8 != 0 {
 		s += "="

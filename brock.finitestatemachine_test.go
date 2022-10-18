@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
 	"go.onebrick.io/brock"
 )
 

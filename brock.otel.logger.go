@@ -63,11 +63,13 @@ func (x *Logger) ParseLevel(level string) (zerolog.Level, logrus.Level) {
 	level = strings.ToLower(level)
 	z, _ := zerolog.ParseLevel(level)
 	l, _ := logrus.ParseLevel(level)
+
 	return z, l
 }
 
 func (Logger) filter(c ...io.Writer) []io.Writer {
 	ws := make([]io.Writer, 0)
+
 	for _, v := range c {
 		if v == nil || v == io.Discard {
 			continue
@@ -81,13 +83,15 @@ func (Logger) filter(c ...io.Writer) []io.Writer {
 		} else if f, ok := v.(*os.File); ok && f != nil {
 			v = &lumberjack.Logger{
 				Filename:   f.Name(),
-				MaxSize:    100, // megabytes
-				MaxAge:     10,  // days
-				MaxBackups: 10,  // num
+				MaxSize:    (100), // megabytes
+				MaxAge:     (10),  // days
+				MaxBackups: (10),  // num
 				Compress:   true,
 			}
 		}
+
 		ws = append(ws, v)
 	}
+
 	return ws
 }

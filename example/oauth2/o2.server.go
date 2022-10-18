@@ -56,6 +56,7 @@ func oauth2Server() *server.Server {
 		//
 		// used to get immediate scope openid return of id_token
 		oauth2.Implicit)
+
 	s.Config.AllowedCodeChallengeMethods = []oauth2.CodeChallengeMethod{
 		oauth2.CodeChallengeS256,  // use this when challenge via SHA-256
 		oauth2.CodeChallengePlain, // else use this

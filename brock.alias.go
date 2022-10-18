@@ -18,24 +18,22 @@ type (
 	Scanner   = fmt.Scanner
 )
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var (
 	NonNil = struct{}{}
 
 	Errorf = fmt.Errorf
 
-	// print.
-
 	Fprintf = fmt.Fprintf
-	Printf  = fmt.Printf
+	Printf  = fmt.Printf //nolint:forbidigo
 	Sprintf = fmt.Sprintf
 
 	Fprint = fmt.Fprint
-	Print  = fmt.Print
+	Print  = fmt.Print //nolint:forbidigo
 	Sprint = fmt.Sprint
 
 	Fprintln = fmt.Fprintln
-	Println  = fmt.Println
+	Println  = fmt.Println //nolint:forbidigo
 	Sprintln = fmt.Sprintln
 
 	// scan.
@@ -75,6 +73,7 @@ func Apply[T any](opt T, opts ...func(T)) T {
 			fn(opt)
 		}
 	}
+
 	return opt
 }
 
@@ -82,5 +81,6 @@ func IfThenElse[T any](cond bool, this, that T) T {
 	if cond {
 		return this
 	}
+
 	return that
 }

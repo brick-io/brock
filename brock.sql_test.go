@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
+
 	. "github.com/onsi/gomega"
 
 	"go.onebrick.io/brock"

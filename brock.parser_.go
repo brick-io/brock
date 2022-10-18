@@ -21,15 +21,15 @@ type Parser interface {
 	NewDecoder(r io.Reader) Decoder
 }
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var (
-	// JSON
+	// JSON ...
 	JSON Parser = _json{json.ConfigFastest}
-	// XML
+	// XML ...
 	XML Parser = _xml{}
-	// YAML
+	// YAML ...
 	YAML Parser = _yaml{}
-	// TOML
+	// TOML ...
 	TOML Parser = _toml{}
 )
 

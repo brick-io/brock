@@ -48,6 +48,7 @@ func (err *WrapError) Error() string {
 	case err.Msg == "":
 		return err.Err.Error()
 	}
+
 	return err.Msg + ": " + err.Err.Error()
 }
 
@@ -79,11 +80,12 @@ func (err *SQLRoundRobinError) Error() string {
 	)
 }
 
-// Errors combine multiple errors into one error
+// Errors combine multiple errors into one error.
 type Errors []error
 
 func (errs Errors) Error() string {
 	out := make([]string, 0)
+
 	for _, each := range errs {
 		if each != nil {
 			out = append(out, each.Error())
@@ -91,16 +93,20 @@ func (errs Errors) Error() string {
 			out = append(out, "")
 		}
 	}
+
 	p, _ := JSON.Marshal(out)
+
 	return IfThenElse(len(out) < 1, "", string(p))
 }
 
 func (errs Errors) Filter(fn func(error) bool) Errors {
 	out := make(Errors, 0)
+
 	for _, each := range errs {
 		if fn(each) {
 			out = append(out, each)
 		}
 	}
+
 	return IfThenElse(len(out) < 1, nil, out)
 }

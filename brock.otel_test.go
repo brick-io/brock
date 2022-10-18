@@ -32,5 +32,5 @@ func TestOtel(t *testing.T) {
 
 	f, o = o, f
 
-	_, _, _ = f, o, ctx
+	brock.Nop(f, o, ctx)
 }

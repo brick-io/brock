@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Dig copied from https://github.com/lixiangzhong/dnsutil with modification
+// Dig copied from https://github.com/lixiangzhong/dnsutil with modification.
 type Dig struct {
 	Retry      uint
 	Protocol   string
@@ -20,162 +20,162 @@ type Dig struct {
 }
 
 // A ...
-func (d *Dig) A(ctx context.Context, domain string) ([]*dns.A, error) {
-	m := digNewMsg(dns.TypeA, domain)
-	res, err := d.exchangeWithRetry(ctx, m)
+func (d *Dig) A(ctx context.Context, domain string) (As []*dns.A, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeA, domain))
 	if err != nil {
 		return nil, err
 	}
-	var As []*dns.A
+
 	for _, v := range res.Answer {
 		if a, ok := v.(*dns.A); ok {
 			As = append(As, a)
 		}
 	}
+
 	return As, nil
 }
 
 // NS ...
-func (d *Dig) NS(ctx context.Context, domain string) ([]*dns.NS, error) {
-	m := digNewMsg(dns.TypeNS, domain)
-	res, err := d.exchangeWithRetry(ctx, m)
+func (d *Dig) NS(ctx context.Context, domain string) (Ns []*dns.NS, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeNS, domain))
 	if err != nil {
 		return nil, err
 	}
-	var Ns []*dns.NS
+
 	for _, v := range res.Answer {
 		if ns, ok := v.(*dns.NS); ok {
 			Ns = append(Ns, ns)
 		}
 	}
+
 	return Ns, nil
 }
 
 // CNAME ...
-func (d *Dig) CNAME(ctx context.Context, domain string) ([]*dns.CNAME, error) {
-	m := digNewMsg(dns.TypeCNAME, domain)
-	res, err := d.exchangeWithRetry(ctx, m)
+func (d *Dig) CNAME(ctx context.Context, domain string) (C []*dns.CNAME, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeCNAME, domain))
 	if err != nil {
 		return nil, err
 	}
-	var C []*dns.CNAME
+
 	for _, v := range res.Answer {
 		if c, ok := v.(*dns.CNAME); ok {
 			C = append(C, c)
 		}
 	}
+
 	return C, nil
 }
 
 // PTR ...
-func (d *Dig) PTR(ctx context.Context, domain string) ([]*dns.PTR, error) {
-	m := digNewMsg(dns.TypePTR, domain)
-	res, err := d.exchangeWithRetry(ctx, m)
+func (d *Dig) PTR(ctx context.Context, domain string) (P []*dns.PTR, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypePTR, domain))
 	if err != nil {
 		return nil, err
 	}
-	var P []*dns.PTR
+
 	for _, v := range res.Answer {
 		if p, ok := v.(*dns.PTR); ok {
 			P = append(P, p)
 		}
 	}
+
 	return P, nil
 }
 
 // TXT ...
-func (d *Dig) TXT(ctx context.Context, domain string) ([]*dns.TXT, error) {
-	m := digNewMsg(dns.TypeTXT, domain)
-	res, err := d.exchangeWithRetry(ctx, m)
+func (d *Dig) TXT(ctx context.Context, domain string) (T []*dns.TXT, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeTXT, domain))
 	if err != nil {
 		return nil, err
 	}
-	var T []*dns.TXT
+
 	for _, v := range res.Answer {
 		if t, ok := v.(*dns.TXT); ok {
 			T = append(T, t)
 		}
 	}
+
 	return T, nil
 }
 
 // AAAA ...
-func (d *Dig) AAAA(ctx context.Context, domain string) ([]*dns.AAAA, error) {
-	m := digNewMsg(dns.TypeAAAA, domain)
-	res, err := d.exchangeWithRetry(ctx, m)
+func (d *Dig) AAAA(ctx context.Context, domain string) (aaaa []*dns.AAAA, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeAAAA, domain))
 	if err != nil {
 		return nil, err
 	}
-	var aaaa []*dns.AAAA
+
 	for _, v := range res.Answer {
 		if a, ok := v.(*dns.AAAA); ok {
 			aaaa = append(aaaa, a)
 		}
 	}
+
 	return aaaa, nil
 }
 
 // MX ...
-func (d *Dig) MX(ctx context.Context, domain string) ([]*dns.MX, error) {
-	msg := digNewMsg(dns.TypeMX, domain)
-	res, err := d.exchangeWithRetry(ctx, msg)
+func (d *Dig) MX(ctx context.Context, domain string) (M []*dns.MX, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeMX, domain))
 	if err != nil {
 		return nil, err
 	}
-	var M []*dns.MX
+
 	for _, v := range res.Answer {
 		if m, ok := v.(*dns.MX); ok {
 			M = append(M, m)
 		}
 	}
+
 	return M, nil
 }
 
 // SRV ...
-func (d *Dig) SRV(ctx context.Context, domain string) ([]*dns.SRV, error) {
-	msg := digNewMsg(dns.TypeSRV, domain)
-	res, err := d.exchangeWithRetry(ctx, msg)
+func (d *Dig) SRV(ctx context.Context, domain string) (S []*dns.SRV, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeSRV, domain))
 	if err != nil {
 		return nil, err
 	}
-	var S []*dns.SRV
+
 	for _, v := range res.Answer {
 		if s, ok := v.(*dns.SRV); ok {
 			S = append(S, s)
 		}
 	}
+
 	return S, nil
 }
 
 // CAA ...
-func (d *Dig) CAA(ctx context.Context, domain string) ([]*dns.CAA, error) {
-	msg := digNewMsg(dns.TypeCAA, domain)
-	res, err := d.exchangeWithRetry(ctx, msg)
+func (d *Dig) CAA(ctx context.Context, domain string) (C []*dns.CAA, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeCAA, domain))
 	if err != nil {
 		return nil, err
 	}
-	var C []*dns.CAA
+
 	for _, v := range res.Answer {
 		if c, ok := v.(*dns.CAA); ok {
 			C = append(C, c)
 		}
 	}
+
 	return C, nil
 }
 
 // SPF ...
-func (d *Dig) SPF(ctx context.Context, domain string) ([]*dns.SPF, error) {
-	msg := digNewMsg(dns.TypeSPF, domain)
-	res, err := d.exchangeWithRetry(ctx, msg)
+func (d *Dig) SPF(ctx context.Context, domain string) (S []*dns.SPF, err error) {
+	res, err := d.exchangeWithRetry(ctx, digNewMsg(dns.TypeSPF, domain))
 	if err != nil {
 		return nil, err
 	}
-	var S []*dns.SPF
+
 	for _, v := range res.Answer {
 		if s, ok := v.(*dns.SPF); ok {
 			S = append(S, s)
 		}
 	}
+
 	return S, nil
 }
 

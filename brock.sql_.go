@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
+//nolint:gochecknoglobals
 var SQL _sql
 
 type _sql struct {
@@ -118,6 +119,7 @@ func (x _sql_box_exec) Scan(rowsAffected *int, lastInsertID *int) error {
 		if n, err = x.res.RowsAffected(); err != nil {
 			return err
 		}
+
 		*rowsAffected = int(n)
 	}
 
@@ -125,6 +127,7 @@ func (x _sql_box_exec) Scan(rowsAffected *int, lastInsertID *int) error {
 		if n, err = x.res.LastInsertId(); err != nil {
 			return err
 		}
+
 		*lastInsertID = int(n)
 	}
 
@@ -233,7 +236,7 @@ func (x _sql_box_query_row) Err() error {
 //
 //	Transaction(db.BeginTx(ctx, ...))
 //
-// Wrap the transaction and ends it with either COMMIT or ROLLBACK
+// Wrap the transaction and ends it with either COMMIT or ROLLBACK.
 func (_sql_box) Transaction(val *sql.Tx, err error) SQLBoxTransaction {
 	return &_sql_box_begin_tx{new(sync.Once), val, err}
 }
@@ -257,6 +260,7 @@ func (x _sql_box_begin_tx) Wrap(tx func() error) error {
 	_ = new(sql.Row).Scan()
 
 	fn := Yield(error(ErrSQLInvalidTransaction))
+
 	x.once.Do(func() {
 		if err := tx(); err != nil {
 			fn = Yield(x.res.Rollback())
@@ -275,6 +279,7 @@ func (x _sql_box_begin_tx) Wrap(tx func() error) error {
 
 func (_sql) RoundRobin(conns ...SQLConn) SQLConn {
 	conns2 := make([]SQLConn, 0)
+
 	for _, v := range conns {
 		if v != nil {
 			conns2 = append(conns2, v)
@@ -298,6 +303,7 @@ type _sql_roundrobin struct {
 //	rr.conn(-2)   -> roundRobin READ-ONLY
 func (x *_sql_roundrobin) conn(i int) (SQLConn, error) {
 	l := len(x.conns)
+
 	switch {
 	case l == 1: // only one
 		x.index = 0
