@@ -15,12 +15,53 @@ func oauth2Server() *server.Server {
 	s.SetAllowGetAccessRequest(true)
 	s.SetAllowedResponseType(oauth2.Code, oauth2.Token)
 	s.SetAllowedGrantType(
+		// AuthorizationCode ===================================================
+		// RETURN ACCESS_TOKEN (WITH END-USER DELEGATED AUTHORIZATION, USING AUTHORIZATION_CODE AS INTERMEDIARY)
+		//
+		// used to get access_token for further request
+		//
+		// ✅ normal BE to BE
+		//   1. get authorization_code (VIA Redirect) : client_id + redirect_uri
+		//   2. get access_token : client_id + client_secret + authorization_code + redirect_uri
+		//
+		// ✅ with PKCE [ONLY ON native/mobile/SPA that end-user distributed]
+		//   1. get authorization_code (VIA Redirect) : client_id + redirect_uri + code_challenge + code_challenge_method
+		//   2. get access_token : client_id + code_verifier + authorization_code + redirect_uri
 		oauth2.AuthorizationCode,
+
+		// PasswordCredentials =================================================
+		// RETURN ACCESS_TOKEN (USE INSIDE OUR OWN CLUSTER WITH ADDITIONAL SECURITY CONTEXT FOR FORWARDING USERNAME+PASSWORD)
+		//
+		// ❌ should be avoided on client side because using username/password combination
+		// check the IP, it should be originated from internal WITHOUT EXTERNAL trigger
+		// if cron job, should also check the time window of execution
+		// might use an encrypted USERNAME & encrypted PASSWORD
 		oauth2.PasswordCredentials,
+
+		// ClientCredentials ===================================================
+		// RETURN ACCESS_TOKEN (NO END-USER AUTHORIZED THIS FLOW, USED FOR AUTOMATION FROM CLIENT E.G. GENERATE REPORTING)
+		//
+		// should be used ONLY when the client = resource owner itself
+		// the case of not getting any delegated authorization from end-user
 		oauth2.ClientCredentials,
+
+		// Refreshing ==========================================================
+		// RETURN ACCESS_TOKEN (AS WELL AS INVALIDATE THE PREVIOUS REFRESH_TOKEN)
+		//
+		// IMO, no need to refresh except on ClientCredentials
 		oauth2.Refreshing,
+
+		// Implicit ============================================================
+		// RETURN ID_TOKEN ONLY -- NOT ACCESS_TOKEN
+		//
+		// used to get immediate scope openid return of id_token
 		oauth2.Implicit)
-	s.Config.AllowedCodeChallengeMethods = []oauth2.CodeChallengeMethod{oauth2.CodeChallengePlain, oauth2.CodeChallengeS256}
+	s.Config.AllowedCodeChallengeMethods = []oauth2.CodeChallengeMethod{
+		oauth2.CodeChallengeS256,  // use this when challenge via SHA-256
+		oauth2.CodeChallengePlain, // else use this
+	}
+
+	// ForcePKCE should be use together with AuthorizationCode
 	s.Config.ForcePKCE = false
 
 	// srv.SetAccessTokenExpHandler(func(w http.ResponseWriter, r *http.Request) (exp time.Duration, err error) {
