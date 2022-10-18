@@ -31,4 +31,6 @@ func TestOtel(t *testing.T) {
 	log.Warn().Err(err).Int("3", 3).Msg("msg")
 
 	f, o = o, f
+
+	_, _, _ = f, o, ctx
 }

@@ -16,8 +16,8 @@ func main() {
 }
 
 var (
-	// ErrTooManyRequests is returned when the CB state is half open and the requests count is over the cb maxRequests
-	ErrTooManyRequests = brock.Errorf("too many requests")
+	// // ErrTooManyRequests is returned when the CB state is half open and the requests count is over the cb maxRequests
+	// ErrTooManyRequests = brock.Errorf("too many requests")
 	// ErrOpenState is returned when the CB state is open
 	ErrOpenState = brock.Errorf("circuit breaker is open")
 )

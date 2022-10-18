@@ -3,7 +3,6 @@ package brock_test
 import (
 	"bytes"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,15 +33,11 @@ func testHTTPmiddleware(t *testing.T) {
 	mw.Chain(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			wr := mw.Wrap(w, r)
-			if rand.Intn(1) > 0 {
-				wr.Next(brock.ErrUnimplemented)
-			} else {
-				wr.Next(nil)
-			}
+			wr.Next(nil)
 		}),
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			wr := mw.Wrap(w, r)
-			wr.H2Push("/a.json", http.MethodGet, nil)
+			_ = wr.H2Push("/a.json", http.MethodGet, nil)
 		}),
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			wr := mw.Wrap(w, r)

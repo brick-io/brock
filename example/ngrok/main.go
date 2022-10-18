@@ -15,17 +15,17 @@ func main() {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
 				p, err := io.ReadAll(r.Body)
-				brock.Println("----:----------------------------------------------")
-				brock.Println("ERRS:", err)
-				brock.Println("HEAD:", r.Header)
-				brock.Println("BODY:", string(p))
+				_, _ = brock.Println("----:----------------------------------------------")
+				_, _ = brock.Println("ERRS:", err)
+				_, _ = brock.Println("HEAD:", r.Header)
+				_, _ = brock.Println("BODY:", string(p))
 			}
 			ok := http.StatusOK
 			http.Error(w, http.StatusText(ok)+"with nonce="+nonce, ok)
 		}),
 	}
-	brock.Printf("running on %s with nonce=%s", srv.Addr, nonce)
-	brock.Println(srv.ListenAndServe())
+	_, _ = brock.Printf("running on %s with nonce=%s", srv.Addr, nonce)
+	_, _ = brock.Println(srv.ListenAndServe())
 }
 
 func Nonce(n int) []byte {

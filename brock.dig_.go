@@ -303,6 +303,9 @@ func (d *Dig) conn(ctx context.Context) (net.Conn, error) {
 	}
 	if d.LocalAddr != "" {
 		di.LocalAddr, err = digResolveLocalAddr(d.protocol(), d.LocalAddr)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return di.DialContext(ctx, d.protocol(), remoteaddr)
 }
@@ -356,6 +359,8 @@ func (d *Dig) exchange(ctx context.Context, m *dns.Msg) (*dns.Msg, error) {
 	return res, nil
 }
 
+var _, _ = new(Dig).lookupdns("")
+
 func (d *Dig) lookupdns(host string) (string, error) {
 	var ip string
 	port := "53"
@@ -402,6 +407,8 @@ func (d *Dig) edns0clientsubnet(m *dns.Msg) {
 	o.Option = append(o.Option, e)
 	m.Extra = append(m.Extra, o)
 }
+
+var _ = digRandserver(nil)
 
 func digRandserver(servers []string) string {
 	length := len(servers)

@@ -12,11 +12,14 @@ import (
 	"go.onebrick.io/brock"
 )
 
-func a() {
+var _ = a()
+
+func a() int {
 	_ = store.NewClientStore()
 	_, _ = store.NewMemoryTokenStore()
 	_ = generates.NewAccessGenerate()
 	_ = generates.NewAuthorizeGenerate()
+	return 0
 }
 
 type instance struct {

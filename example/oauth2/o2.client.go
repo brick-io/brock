@@ -41,5 +41,5 @@ func doclient() {
 	}
 
 	client := conf.Client(ctx, tok)
-	client.Get("...")
+	_, _ = client.Get("...")
 }

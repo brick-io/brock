@@ -254,7 +254,7 @@ func (x _sql_box_begin_tx) Wrap(tx func() error) error {
 		return x.err
 	}
 
-	new(sql.Row).Scan()
+	_ = new(sql.Row).Scan()
 
 	fn := Yield(error(ErrSQLInvalidTransaction))
 	x.once.Do(func() {

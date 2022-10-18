@@ -165,7 +165,7 @@ func (_http_body) WithString(v string) func() io.Reader {
 func (_http_body) WithJSON(v any) func() io.Reader {
 	return func() io.Reader {
 		buf := new(bytes.Buffer)
-		JSON.NewEncoder(buf).Encode(v)
+		_ = JSON.NewEncoder(buf).Encode(v)
 		return buf
 	}
 }
@@ -464,17 +464,18 @@ func (x *_http_mux) requestKey(r *http.Request) string {
 	k := m + " " + pat
 
 	if _, ok := x.entries[k]; ok &&
-		strings.Index(pat, "{") < 0 &&
-		strings.Index(pat, "}") < 0 && ok {
+		!strings.Contains(pat, "{") &&
+		!strings.Contains(pat, "}") && ok {
 		return k // match with exact entry
 	}
 
 	for k, entry := range x.entries {
-		if strings.Index(k, m) >= 0 && len(entry.parts) > 0 {
+		if strings.Contains(k, m) && len(entry.parts) > 0 {
 			n, u = x.parse(pat, n, u, k)
 			if len(u) > 0 {
 				HTTP.Request.Set(r, ctx_key_http_mux_named_arguments{}, u)
 			}
+			_ = n
 			return k // match with variables
 		}
 	}
@@ -496,7 +497,7 @@ func (x *_http_mux) canonicalPath(s string) string {
 	}
 
 	if h := strings.Index(s, "/") + 1; h > 0 {
-		if strings.Index(s[0:h], ".") < 0 {
+		if !strings.Contains(s[0:h], ".") {
 			h = 0
 		}
 		s = s[h:]

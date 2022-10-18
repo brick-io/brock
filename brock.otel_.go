@@ -3,7 +3,6 @@ package brock
 import (
 	"context"
 	"net/http"
-	"os"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -19,8 +18,8 @@ type o_t struct {
 var (
 	OpenTelemetry o_t
 
-	sOUT = os.Stdout
-	sERR = os.Stderr
+	// sOUT = os.Stdout
+	// sERR = os.Stderr
 )
 
 type o_t_attribute struct{}

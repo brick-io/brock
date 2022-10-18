@@ -1,226 +1,33 @@
-# https://golangci-lint.run/usage/configuration#config-file
-issues:
-  exclude: []
-  exclude-case-sensitive: false
-  exclude-rules: []
-  exclude-use-default: true
-  include: []
-  max-issues-per-linter: 5000
-  max-same-issues: 5000
-  new: false
+# # https://golangci-lint.run/usage/configuration#config-file
+# issues:
+#   exclude-use-default: true
+#   exclude-case-sensitive: false
+#   max-issues-per-linter: 50
+#   max-same-issues: 3
+#   new: false
 
-run:
-  allow-parallel-runners: true
-  concurrency: 4
-  issue-exit-code: 1
-  skip-dirs: []
-  skip-dirs-use-default: true
-  skip-files: []
-  tests: true
-  timeout: 1m
+# linters:
+#   enable-all: false
+#   disable-all: false
+#   fast: false
 
-linters:
-  disable:
-    - godox
-    - gomoddirectives
-    - paralleltest
-    - tagliatelle
-  disable-all: false
-  enable: []
-  enable-all: true
-  fast: true
-  presets: []
+# linters-settings:
+#   {}
 
-linters-settings:
-  cyclop:
-    max-complexity: 10
-    package-average: 0.0
-    skip-tests: true
-  dogsled:
-    max-blank-identifiers: 2
-  dupl:
-    threshold: 395 # 150
-  errorlint:
-    errorf: true
-    asserts: true
-    comparison: true
-  forbidigo:
-    forbid:
-      - 'fmt\.Print.*'
-  funlen:
-    lines: 255 # 60
-    statements: 160 # 40
-  gci:
-    sections:
-      - go.onebrick.io
-  gocognit:
-    min-complexity: 145 # 30
-  goconst:
-    min-len: 30 # 3
-    min-occurrences: 30 # 3
-  gocritic:
-    disabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - security
-      - style
-  gocyclo:
-    min-complexity: 80 # 30godot:
-    check-all: false
-  gofmt:
-    simplify: true
-  gofumpt:
-    extra-rules: false
-  goimports:
-    local-prefixes: go.onebrick.io
-  golint:
-    min-confidence: 0.5
-  gomnd:
-    settings:
-      mnd:
-        checks: [case, condition, operation, return]
-  gomodguard:
-    allowed:
-      domains:
-        - "github.com"
-        - "gitlab.com"
-        - "golang.org"
-        - "gopkg.in"
-        - "google.golang.org"
-        - "go.opentelemetry.io"
-        - "go.onebrick.io"
-    blocked:
-      local_replace_directives: false
-  gosec: {}
-  gosimple:
-    go: "1.16"
-    checks: [all]
-  govet:
-    check-shadowing: true
-    disable-all: false
-    enable-all: true
-  ifshort:
-    max-decl-lines: 1
-    max-decl-chars: 20
-  importas: {}
-  lll:
-    line-length: 410 # 120
-  makezero:
-    always: true
-  maligned:
-    suggest-new: true
-  misspell:
-    locale: US
-    ignore-words:
-      - "cancelled"
-  nakedret:
-    max-func-lines: 0
-  nestif:
-    min-complexity: 11 # 5
-  nilnil:
-    checked-types: [ptr, func, iface, map, chan]
-  nlreturn:
-    block-size: 1
-  nolintlint:
-    allow-unused: true
-    allow-leading-space: false
-    require-explanation: false
-    require-specific: true
-  nonamedreturns:
-    report-error-in-defer: true
-  prealloc:
-    simple: true
-    range-loops: true
-    for-loops: true
-  promlinter:
-    strict: true
-  revive:
-    severity: warning
-  staticcheck:
-    go: "1.16"
-    checks: [all]
-  stylecheck:
-    go: "1.16"
-    checks:
-      ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
-    dot-import-whitelist:
-      - fmt
-    initialisms:
-      [
-        "ACL",
-        "API",
-        "ASCII",
-        "CPU",
-        "CSS",
-        "DNS",
-        "EOF",
-        "GUID",
-        "HTML",
-        "HTTP",
-        "HTTPS",
-        "ID",
-        "IP",
-        "JSON",
-        "QPS",
-        "RAM",
-        "RPC",
-        "SLA",
-        "SMTP",
-        "SQL",
-        "SSH",
-        "TCP",
-        "TLS",
-        "TTL",
-        "UDP",
-        "UI",
-        "GID",
-        "UID",
-        "UUID",
-        "URI",
-        "URL",
-        "UTF8",
-        "VM",
-        "XML",
-        "XMPP",
-        "XSRF",
-        "XSS",
-      ]
-    http-status-code-whitelist: ["200", "400", "404", "500"]
-  tagliatelle: {}
-    # # check the struck tag name case
-    # case:
-    #   # use the struct field name to check the name of the struct tag
-    #   use-field-name: false
-    #   rules:
-    #     # any struct tag type can be used.
-    #     # support string case: `camel`, `pascal`, `kebab`, `snake`, `goCamel`, `goPascal`, `goKebab`, `goSnake`, `upper`, `lower`
-    #     json: snake
-    #     yaml: camel
-    #     xml: camel
-    #     bson: camel
-    #     avro: snake
-    #     mapstructure: kebab
-  thelper:
-    test: { first: true, name: true, begin: true }
-    benchmark: { first: true, name: true, begin: true }
-    tb: { first: true, name: true, begin: true }
-  unparam:
-    check-exported: true
-  unused:
-    go: "1.16"
-  whitespace:
-    multi-if: true
-    multi-func: false
-  wsl:
-    allow-assign-and-anything: false
-    allow-assign-and-call: false
-    allow-cuddle-declarations: false
-    allow-multiline-assign: false
-    allow-separated-leading-comment: false
-    allow-trailing-comment: false
-    force-case-trailing-whitespace: 0
-    force-err-cuddling: true
-    force-short-decl-cuddling: false
-    strict-append: true
+# output:
+#   print-issued-lines: true
+#   print-linter-name: true
+#   unique-by-line: true
+#   path-prefix: ""
+
+# run:
+#   timeout: "1m"
+#   issue-exit-code: 1
+#   tests: true
+#   skip-dirs-use-default: true
+#   allow-parallel-runners: false
+#   go: "1.19"
+
+# severity:
+#   default-severity: error
+#   case-sensitive: false

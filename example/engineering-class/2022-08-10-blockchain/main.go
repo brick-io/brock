@@ -39,43 +39,43 @@ func main() {
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 100, src: _GOD, dst: Alex,
 	})
-	brock.Printf(format, theBlock.record, err)
+	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 100, src: _GOD, dst: Bayu,
 	})
-	brock.Printf(format, theBlock.record, err)
+	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Alex, dst: Bayu,
 	})
-	brock.Printf(format, theBlock.record, err)
+	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Alex, dst: Bayu,
 	})
-	brock.Printf(format, theBlock.record, err)
+	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Alex, dst: Bayu,
 	})
-	brock.Printf(format, theBlock.record, err)
+	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Bayu, dst: Chad,
 	})
-	brock.Printf(format, theBlock.record, err)
+	_, _ = brock.Printf(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: 35, src: Bayu, dst: Chad,
 	})
-	brock.Printf(format, theBlock.record, err)
+	_, _ = brock.Printf(format, theBlock.record, err)
 }
 
 // Account
