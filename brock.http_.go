@@ -13,9 +13,8 @@ import (
 	"strings"
 )
 
-var (
-	HTTP _http
-)
+//nolint:gochecknoglobals
+var HTTP _http
 
 type _http struct {
 	Header     _http_header
@@ -166,16 +165,19 @@ func (_http_body) WithJSON(v any) func() io.Reader {
 	return func() io.Reader {
 		buf := new(bytes.Buffer)
 		_ = JSON.NewEncoder(buf).Encode(v)
+
 		return buf
 	}
 }
 
-type _http_middleware struct{}
-type ctx_key_http_middleware_next_err struct{}
-type ctx_key_http_middleware_already_sent struct{}
-type ctx_key_http_middleware_already_streamed struct{}
+type (
+	_http_middleware                         struct{}
+	ctx_key_http_middleware_next_err         struct{}
+	ctx_key_http_middleware_already_sent     struct{}
+	ctx_key_http_middleware_already_streamed struct{}
+)
 
-// Chain multiple handlers as one http.Handler
+// Chain multiple handlers as one http.Handler.
 func (_http_middleware) Chain(handlers ...http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, h := range handlers {
@@ -193,7 +195,7 @@ func (_http_middleware) Chain(handlers ...http.Handler) http.Handler {
 	})
 }
 
-// MiddlewareHTTP helper contract
+// MiddlewareHTTP helper contract.
 type MiddlewareHTTP interface {
 	// Err get any error passed from the previous handler
 	Err() error
@@ -207,7 +209,7 @@ type MiddlewareHTTP interface {
 	H2Push(target, method string, header http.Header) error
 }
 
-// Wrap the middleware helper from http.ResponseWriter and *http.Request
+// Wrap the middleware helper from http.ResponseWriter and *http.Request.
 func (_http_middleware) Wrap(w http.ResponseWriter, r *http.Request) MiddlewareHTTP {
 	return &_http_middleware_wrap{w, r}
 }
@@ -217,20 +219,21 @@ type _http_middleware_wrap struct {
 	r *http.Request
 }
 
-// Err get any error passed from the previous handler
+// Err get any error passed from the previous handler.
 func (x *_http_middleware_wrap) Err() error {
 	err, _ := HTTP.Request.Get(x.r, ctx_key_http_middleware_next_err{}).(error)
+
 	return err
 }
 
-// Next pass the error to the next handler
+// Next pass the error to the next handler.
 func (x *_http_middleware_wrap) Next(err error) {
 	if err != nil {
 		*x.r = *(HTTP.Request.Set(x.r, ctx_key_http_middleware_next_err{}, err))
 	}
 }
 
-// Send is a shorthand for set the statusCode, header & body
+// Send is a shorthand for set the statusCode, header & body.
 func (x *_http_middleware_wrap) Send(statusCode int, header http.Header, body io.Reader) (int, error) {
 	if http.StatusText(statusCode) == "" {
 		return 0, nil
@@ -245,22 +248,25 @@ func (x *_http_middleware_wrap) Send(statusCode int, header http.Header, body io
 			x.w.Header().Add(k, v)
 		}
 	}
+
 	x.w.WriteHeader(statusCode)
+
 	if body == nil {
 		body = new(bytes.Buffer)
 	}
+
 	n, err := io.Copy(x.w, body)
 	*x.r = *(HTTP.Request.Set(x.r, ctx_key_http_middleware_already_sent{}, NonNil))
+
 	return int(n), err
 }
 
-// Stream is used for streaming response to the client
+// Stream is used for streaming response to the client.
 func (x *_http_middleware_wrap) Stream(p []byte) (int, error) {
 	if len(p) < 1 {
 		return 0, nil
 	} else if HTTP.Request.Get(x.r, ctx_key_http_middleware_already_sent{}) != nil {
 		return 0, ErrHTTPAlreadySent
-
 	}
 
 	type streamer interface {
@@ -275,11 +281,13 @@ func (x *_http_middleware_wrap) Stream(p []byte) (int, error) {
 
 	n, err := w.Write(p)
 	w.Flush()
+
 	*x.r = *(HTTP.Request.Set(x.r, ctx_key_http_middleware_already_streamed{}, NonNil))
+
 	return n, err
 }
 
-// H2Push initiate a HTTP/2 server push
+// H2Push initiate a HTTP/2 server push.
 func (x *_http_middleware_wrap) H2Push(target, method string, header http.Header) error {
 	if target == "" {
 		return nil
@@ -298,6 +306,7 @@ func (x *_http_middleware_wrap) H2Push(target, method string, header http.Header
 	if method != "" && header != nil {
 		opts = &http.PushOptions{Method: method, Header: header}
 	}
+
 	return w.Push(target, opts)
 }
 
@@ -361,21 +370,30 @@ type _http_mux struct {
 	notFoundHandler http.Handler
 }
 
-// HandlePanic register http.Handler that called when panic occured,
+// HandlePanic register http.Handler that called when panic occurred,
 // to access the recovered value
 //
 //	brock.HTTP.PanicRecoveryFromRequest(r)
-func (x *_http_mux) HandlePanic(h http.Handler) *_http_mux { x.panicHandler = h; return x }
+func (x *_http_mux) HandlePanic(h http.Handler) *_http_mux {
+	x.panicHandler = h
 
-// HandleNotFound register http.Handler that called when no matches request
-func (x *_http_mux) HandleNotFound(h http.Handler) *_http_mux { x.notFoundHandler = h; return x }
+	return x
+}
 
-// Handle register http.Handler based on the given pattern
+// HandleNotFound register http.Handler that called when no matches request.
+func (x *_http_mux) HandleNotFound(h http.Handler) *_http_mux {
+	x.notFoundHandler = h
+
+	return x
+}
+
+// Handle register http.Handler based on the given pattern.
 func (x *_http_mux) Handle(method, pattern string, h http.Handler) *_http_mux {
 	if ms := strings.Split(method, ","); len(ms) > 1 {
 		for _, method := range ms {
 			x.Handle(method, pattern, h)
 		}
+
 		return x
 	}
 
@@ -403,15 +421,18 @@ func (x *_http_mux) Handle(method, pattern string, h http.Handler) *_http_mux {
 	}
 
 	x.entries[method+" "+pattern] = _http_mux_entry{x.parts(pattern), h}
+
 	return x
 }
 
 func (x *_http_mux) parts(pattern string) []string {
 	parts, keys := make([]string, 0), make(map[string]struct{})
+
 	for i, p := 0, 0; i < len(pattern); i++ {
 		if pattern[i] != '{' {
 			continue
 		}
+
 		parts = append(parts, pattern[p:i])
 
 		// previous rune is '}'
@@ -427,12 +448,15 @@ func (x *_http_mux) parts(pattern string) []string {
 		if i+1 < len(pattern) {
 			s := strings.Index(pattern[i+1:], "}")
 			key := pattern[i+1:][:s]
+
 			if _, ok := keys[key]; ok {
 				panic("pattern: duplicate key: " + key)
 			}
+
 			i = i + 1 + s
 			p = i + 1
 			keys[key] = struct{}{}
+
 			parts = append(parts, "{"+key+"}")
 		}
 	}
@@ -440,7 +464,7 @@ func (x *_http_mux) parts(pattern string) []string {
 	return parts
 }
 
-// ServeHTTP implement the http.Handler
+// ServeHTTP implement the http.Handler.
 func (x *_http_mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var _ http.Handler = x
 
@@ -454,8 +478,10 @@ func (x *_http_mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := x.requestKey(r)
 	if e, ok := x.entries[key]; len(key) > 0 && ok && e.Handler != nil {
 		e.ServeHTTP(w, r)
+
 		return
 	}
+
 	x.notFoundHandler.ServeHTTP(w, r)
 }
 
@@ -475,7 +501,9 @@ func (x *_http_mux) requestKey(r *http.Request) string {
 			if len(u) > 0 {
 				HTTP.Request.Set(r, ctx_key_http_mux_named_arguments{}, u)
 			}
+
 			_ = n
+
 			return k // match with variables
 		}
 	}
@@ -500,6 +528,7 @@ func (x *_http_mux) canonicalPath(s string) string {
 		if !strings.Contains(s[0:h], ".") {
 			h = 0
 		}
+
 		s = s[h:]
 	}
 
@@ -523,12 +552,15 @@ func (x *_http_mux) parse(pattern string, n int, u url.Values, k string) (int, u
 			n = n + len(part) + nn
 		case x.isVars(part):
 			key, val := part[1:len(part)-1], ""
+
 			if i < len(e.parts)-1 {
 				next := e.parts[i+1]
 				nn := strings.Index(pattern[n:], next)
+
 				if nn > 0 {
 					val = pattern[n:][:nn]
 					n = nn
+
 					x.setKV(u, key, val)
 				}
 			} else if n < len(pattern) {
@@ -537,6 +569,7 @@ func (x *_http_mux) parse(pattern string, n int, u url.Values, k string) (int, u
 			}
 		}
 	}
+
 	return n, u
 }
 

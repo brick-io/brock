@@ -142,6 +142,7 @@ func oauth2Server() *server.Server {
 			// w.WriteHeader(http.StatusFound)
 			w.Header().Set("Location", "/authentication"+action)
 		}
+
 		return u.ID, err
 	})
 

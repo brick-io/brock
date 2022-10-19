@@ -45,6 +45,7 @@ func (x *instance) Manager() oauth2.Manager {
 	m.SetPasswordTokenCfg(manage.DefaultPasswordTokenCfg)
 	m.SetRefreshTokenCfg(manage.DefaultRefreshTokenCfg)
 	m.SetValidateURIHandler(manage.DefaultValidateURI)
+
 	return m
 }
 

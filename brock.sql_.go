@@ -272,6 +272,7 @@ func (x _sql_box_begin_tx) Wrap(tx func() error) error {
 		}
 		x.err = fn()
 	})
+
 	return fn()
 }
 

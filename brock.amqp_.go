@@ -6,9 +6,8 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
-var (
-	AMQP _amqp
-)
+//nolint:gochecknoglobals
+var AMQP _amqp
 
 type _amqp struct{}
 
@@ -104,9 +103,11 @@ func (_amqp) Consume(ctx context.Context, req *AMQPConsumeRequest, h AMQPConsume
 		}
 
 		chDelivery, err := ch.Consume(req.Queue, req.Consumer, req.AutoAck, req.Exclusive, req.NoLocal, req.NoWait, req.Args)
-		chDone, done := make(chan struct{}, 5), err == nil
+
+		chDone, done := make(chan struct{}, (5)), err == nil
 		for !done {
 			chDone <- struct{}{}
+
 			var d *AMQPDelivery
 			select {
 			case <-ctx.Done():
@@ -132,8 +133,7 @@ func (_amqp) Publish(ctx context.Context, ch *AMQPChannel, req *AMQPPublishReque
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	if req == nil {
-		err := error(nil)
+	if err := error(nil); req == nil {
 		return nil, nil, err
 	}
 
@@ -142,8 +142,11 @@ func (_amqp) Publish(ctx context.Context, ch *AMQPChannel, req *AMQPPublishReque
 		return nil, nil, err
 	}
 
-	var confirm *AMQPConfirmation
-	var ret *AMQPReturn
+	var (
+		confirm *AMQPConfirmation
+		ret     *AMQPReturn
+	)
+
 	select {
 	case <-ctx.Done():
 		err = ctx.Err()
@@ -152,25 +155,29 @@ func (_amqp) Publish(ctx context.Context, ch *AMQPChannel, req *AMQPPublishReque
 	case event := <-ch.NotifyReturn(make(chan amqp091.Return)):
 		ret = &event
 	}
+
 	return confirm, ret, err
 }
 
 // =============================================================================
 
-type AMQPConnection = amqp091.Connection
-type AMQPChannel = amqp091.Channel
+type (
+	AMQPConnection = amqp091.Connection
+	AMQPChannel    = amqp091.Channel
 
-type AMQPConfiguration = amqp091.Config
-type AMQPError = amqp091.Error
-type AMQPDelivery = amqp091.Delivery
-type AMQPConfirmation = amqp091.Confirmation
-type AMQPReturn = amqp091.Return
-type AMQPTable = amqp091.Table
-type AMQPPublishing = amqp091.Publishing
+	AMQPConfiguration = amqp091.Config
+	AMQPError         = amqp091.Error
+	AMQPDelivery      = amqp091.Delivery
+	AMQPConfirmation  = amqp091.Confirmation
+	AMQPReturn        = amqp091.Return
+	AMQPTable         = amqp091.Table
+	AMQPPublishing    = amqp091.Publishing
+)
 
 // =============================================================================
 
 type AMQPConsumeHandlerFunc func(ctx context.Context, d *AMQPDelivery, err error)
+
 type (
 	cf  = AMQPConsumeHandlerFunc
 	cfD = AMQPDelivery

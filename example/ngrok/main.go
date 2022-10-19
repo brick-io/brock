@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	nonce := brock.Sprintf("%x", Nonce(24))
+	nonce := brock.Sprintf("%x", Nonce((24)))
 	srv := &http.Server{
 		Addr: ":8080",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +31,7 @@ func main() {
 func Nonce(n int) []byte {
 	nonce := make([]byte, n)
 	_, _ = io.ReadFull(rand.Reader, nonce)
+
 	return nonce
 }
 

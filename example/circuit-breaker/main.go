@@ -50,6 +50,7 @@ func (x *circuit_breaker) OnAfter(err error) error {
 		add(&x.c.ConsecutiveSuccesses, 1)
 		add(&x.c.ConsecutiveFailures, -load(&x.c.ConsecutiveFailures))
 	}
+
 	return err
 }
 

@@ -74,19 +74,8 @@ var (
 
 	seal = brock.Crypto.NaCl.Box.SealWithSharedKey
 	open = brock.Crypto.NaCl.Box.OpenWithSharedKey
-	// norm = strings.NewReplacer(
-	// 	"=", "_",
-	// 	"/", "_",
-	// 	"+", "_",
-	// 	"-", "_",
-	// ).Replace
 
 	cookie_key_user_token = "bk_user"
-
-	// pub_client,
-	// pvt_client, _ = brock.Crypto.NaCl.Box.Generate()
-	// pub_client_b64 = strings.TrimRight(btoa(pub_client[:]), "=")
-	// pvt_client_b64 = strings.TrimRight(btoa(pvt_client[:]), "=")
 
 	clientID       = xid.New()
 	pub_client_b64 = clientID.String()
@@ -131,6 +120,7 @@ func expand(id xid.ID) []byte {
 	p = append(p, []byte(brock.Sprint(clientID.Pid()))...)
 	p = append(p, []byte(clientID.Time().String())...)
 	p = append(p, []byte(brock.Sprint(clientID.Counter()))...)
+
 	return p
 }
 
@@ -306,6 +296,7 @@ func getAction(a string) (u url.Values, err error) {
 	} else {
 		err = ErrNotFound
 	}
+
 	return
 }
 
@@ -350,6 +341,7 @@ func (c Cipher) UnmarshalJSON(p []byte) error {
 	if p, ok := open(p, key); ok && len(p) > 0 {
 		return brock.JSON.Unmarshal(p, c.any)
 	}
+
 	return nil
 }
 
@@ -361,5 +353,6 @@ func atob(s string) ([]byte, error) {
 	for len(s)%8 != 0 {
 		s += "="
 	}
+
 	return base64.URLEncoding.DecodeString(s)
 }

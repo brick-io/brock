@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"go.onebrick.io/brock"
 	"golang.org/x/oauth2"
+
+	"go.onebrick.io/brock"
 )
 
 func doclient() {

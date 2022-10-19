@@ -165,19 +165,9 @@ func (b *Block) Chain(record *Record) (*Block, error) {
 		dstLastBlock = new(Block)
 	} else {
 		srcLastBlock, i = b.LastBlockOf(record.src)
-		if i != 0 && srcLastBlock != nil {
-			srcBalance = srcLastBlock.record.dstLastBalance
-			if i > 0 {
-				srcBalance = srcLastBlock.record.srcLastBalance
-			}
-		}
+		srcBalance = balanceOfLastBlock(srcLastBlock, i)
 		dstLastBlock, i = b.LastBlockOf(record.dst)
-		if i != 0 && dstLastBlock != nil {
-			dstBalance = dstLastBlock.record.srcLastBalance
-			if i < 0 {
-				dstBalance = dstLastBlock.record.dstLastBalance
-			}
-		}
+		dstBalance = balanceOfLastBlock(dstLastBlock, i)
 		if srcBalance < record.amt {
 			return b, ErrInsufficientFund
 		}
@@ -193,6 +183,18 @@ func (b *Block) Chain(record *Record) (*Block, error) {
 		parent:       b,
 		record:       record,
 	}, nil
+}
+
+func balanceOfLastBlock(b *Block, i int) uint {
+	if i != 0 && b != nil {
+		if i < 0 {
+			return b.record.dstLastBalance
+		}
+
+		return b.record.srcLastBalance
+	}
+
+	return 0
 }
 
 func (b *Block) LastBlockOf(a *Account) (*Block, int) {

@@ -27,9 +27,7 @@ func testHTTPmiddleware(t *testing.T) {
 	mw := brock.HTTP.Middleware
 	str := "something in between me and you"
 
-	w, r :=
-		httptest.NewRecorder(),
-		httptest.NewRequest(http.MethodGet, "/", nil)
+	w, r := httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil)
 	mw.Chain(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			wr := mw.Wrap(w, r)
@@ -171,8 +169,10 @@ func (x assertResponse) EqualHeader() bool {
 			headerEq = headerEq && x.header[k][i] == actual[k][i]
 		}
 	}
+
 	return headerEq
 }
+
 func (x assertResponse) Format() string {
 	format := ""
 	if !x.EqualCode() {
@@ -186,8 +186,10 @@ func (x assertResponse) Format() string {
 	if !x.EqualBody() {
 		format += "\nBody Expect: %q\n     Actual: %q"
 	}
+
 	return format
 }
+
 func (x assertResponse) Args() []any {
 	args := make([]any, 0)
 	if !x.EqualCode() {
@@ -201,5 +203,6 @@ func (x assertResponse) Args() []any {
 	if !x.EqualBody() {
 		args = append(args, x.body, x.w.Body.Bytes())
 	}
+
 	return args
 }

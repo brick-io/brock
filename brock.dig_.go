@@ -266,17 +266,25 @@ func (d *Dig) SPF(ctx context.Context, domain string) (S []*dns.SPF, err error) 
 // 	return d.exchangeWithRetry(ctx, m)
 // }
 
+//nolint:gochecknoglobals
+var (
+	_udp = "udp"
+	_tcp = "tcp"
+)
+
 func (d *Dig) protocol() string {
 	if d.Protocol != "" {
 		return d.Protocol
 	}
-	return "udp"
+
+	return _udp
 }
 
 func (d *Dig) retry() uint {
 	if d.Retry > 0 {
 		return d.Retry
 	}
+
 	return 1
 }
 
@@ -289,6 +297,7 @@ func (d *Dig) remoteAddr() (string, error) {
 			return d.RemoteAddr, Errorf("bad remoteaddr %v ,forget SetDNS ? : %s", d.RemoteAddr, err)
 		}
 	}
+
 	return d.RemoteAddr, nil
 }
 
@@ -297,83 +306,92 @@ func (d *Dig) conn(ctx context.Context) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	di := net.Dialer{}
 	if t, ok := ctx.Deadline(); ok {
 		di.Deadline = t
 	}
+
 	if d.LocalAddr != "" {
 		di.LocalAddr, err = digResolveLocalAddr(d.protocol(), d.LocalAddr)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	return di.DialContext(ctx, d.protocol(), remoteaddr)
 }
 
-func (d *Dig) exchangeWithRetry(ctx context.Context, m *dns.Msg) (*dns.Msg, error) {
-	var msg *dns.Msg
-	var err error
+func (d *Dig) exchangeWithRetry(ctx context.Context, m *dns.Msg) (msg *dns.Msg, err error) {
 	for i := uint(0); i < d.retry(); i++ {
-		msg, err = d.exchange(ctx, m)
-		if err == nil {
+		if msg, err = d.exchange(ctx, m); err == nil {
 			return msg, err
 		}
 	}
+
 	return msg, err
 }
 
-func (d *Dig) exchange(ctx context.Context, m *dns.Msg) (*dns.Msg, error) {
-	var err error
+func (d *Dig) exchange(ctx context.Context, m *dns.Msg) (msg *dns.Msg, err error) {
 	c := new(dns.Conn)
+
 	c.Conn, err = d.conn(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer c.Close()
+
 	if t, ok := ctx.Deadline(); ok {
 		_ = c.SetWriteDeadline(t)
 	}
+
 	d.edns0clientsubnet(m)
+
 	err = c.WriteMsg(m)
 	if err != nil {
 		return nil, err
 	}
+
 	if t, ok := ctx.Deadline(); ok {
 		_ = c.SetReadDeadline(t)
 	}
+
 	res, err := c.ReadMsg()
 	if err != nil {
 		return nil, err
 	}
+
 	if res.Id != m.Id {
 		return res, dns.ErrId
 	}
-	if d.protocol() == "udp" && res.Truncated {
+
+	if d.protocol() == _udp && res.Truncated {
 		dig := *d
-		dig.Protocol = "tcp"
+		dig.Protocol = _tcp
+
 		res, err := dig.exchange(ctx, m)
 		if err == nil {
 			return res, nil
 		}
 	}
+
 	return res, nil
 }
 
 var _, _ = new(Dig).lookupdns("")
 
-func (d *Dig) lookupdns(host string) (string, error) {
-	var ip string
-	port := "53"
+func (d *Dig) lookupdns(host string) (ip string, err error) {
+	ip, port := "", "53"
+
 	switch strings.Count(host, ":") {
-	case 0: //ipv4 or domain
+	case 0: // ipv4 or domain
 		ip = host
-	case 1: //ipv4 or domain
-		var err error
+	case 1: // ipv4 or domain
 		ip, port, err = net.SplitHostPort(host)
 		if err != nil {
 			return "", err
 		}
-	default: //ipv6
+	default: // ipv6
 		if net.ParseIP(host).To16() != nil {
 			ip = host
 		} else {
@@ -381,13 +399,16 @@ func (d *Dig) lookupdns(host string) (string, error) {
 			port = host[strings.LastIndex(host, ":")+1:]
 		}
 	}
+
 	ips, err := net.LookupIP(ip)
 	if err != nil {
 		return "", err
 	}
+
 	for _, addr := range ips {
 		return Sprintf("[%s]:%v", addr, port), nil
 	}
+
 	return "", Errorf("no such host")
 }
 
@@ -395,10 +416,11 @@ func (d *Dig) edns0clientsubnet(m *dns.Msg) {
 	if d.EDNSSubnet == nil {
 		return
 	}
+
 	e := &dns.EDNS0_SUBNET{
 		Code:          dns.EDNS0SUBNET,
-		Family:        1,  //ipv4
-		SourceNetmask: 32, //ipv4
+		Family:        (1),  // ipv4
+		SourceNetmask: (32), // ipv4
 		Address:       d.EDNSSubnet,
 	}
 	o := new(dns.OPT)
@@ -418,19 +440,21 @@ func digRandserver(servers []string) string {
 	case 1:
 		return servers[0]
 	}
+
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	return servers[r.Intn(length)]
 }
 
 func digResolveLocalAddr(network string, laddr string) (net.Addr, error) {
-	network = strings.ToLower(network)
-	laddr += ":0"
+	network, laddr = strings.ToLower(network), laddr+":0"
 	switch network {
 	case "udp":
 		return net.ResolveUDPAddr(network, laddr)
 	case "tcp":
 		return net.ResolveTCPAddr(network, laddr)
 	}
+
 	return nil, Errorf("unknown network:" + network)
 }
 
@@ -445,5 +469,6 @@ func digNewMsg(Type uint16, domain string) *dns.Msg {
 		Qtype:  Type,
 		Qclass: dns.ClassINET,
 	}
+
 	return msg
 }

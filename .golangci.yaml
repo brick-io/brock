@@ -7,10 +7,19 @@ issues:
   new: false
 
 linters:
-  enable-all: true
-  disable-all: false
-  disable: [nosnakecase]
   fast: true
+  enable-all: true
+  disable:
+    - deadcode
+    - exhaustivestruct
+    - golint
+    - ifshort
+    - interfacer
+    - maligned
+    - nosnakecase
+    - scopelint
+    - structcheck
+    - varcheck
 
 linters-settings:
   gci:
