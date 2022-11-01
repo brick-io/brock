@@ -129,6 +129,8 @@ func (_amqp) Consume(ctx context.Context, req *AMQPConsumeRequest, h AMQPConsume
 }
 
 // Publish ...
+//
+//nolint:lll
 func (_amqp) Publish(ctx context.Context, ch *AMQPChannel, req *AMQPPublishRequest) (*AMQPConfirmation, *AMQPReturn, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

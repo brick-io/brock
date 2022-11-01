@@ -124,6 +124,7 @@ func expand(id xid.ID) []byte {
 	return p
 }
 
+//nolint:funlen
 func handleConsent() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
@@ -189,6 +190,7 @@ func handleConsent() http.Handler {
 	})
 }
 
+//nolint:gocognit
 func handleLogin() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if u, err := getUser(r); err != nil || u.ID == "" {

@@ -64,6 +64,7 @@ type (
 
 type _generate_access_and_refresh_token struct{ *instance }
 
+//nolint:lll
 func (x _gaart) Token(ctx context.Context, data *oauth2.GenerateBasic, isRefresh bool) (access, refresh string, err error) {
 	_ = data.Client.GetID()
 	_ = data.UserID

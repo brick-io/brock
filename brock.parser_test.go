@@ -9,6 +9,7 @@ import (
 	"go.onebrick.io/brock"
 )
 
+//nolint:funlen
 func testParser(t *testing.T) {
 	t.Parallel()
 	Expect := NewWithT(t).Expect

@@ -67,6 +67,7 @@ func testHTTPmiddleware(t *testing.T) {
 	Expect(string(p)).To(Equal(str + " "))
 }
 
+//nolint:funlen
 func testHTTPmux(t *testing.T) {
 	t.Parallel()
 

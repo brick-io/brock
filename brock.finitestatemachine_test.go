@@ -8,6 +8,7 @@ import (
 	"go.onebrick.io/brock"
 )
 
+//nolint:funlen
 func testFSM(t *testing.T) {
 	t.Parallel()
 

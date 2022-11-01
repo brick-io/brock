@@ -31,6 +31,7 @@ type TracerConfiguration struct {
 	}
 }
 
+//nolint:funlen
 func (o_t) NewTracer(ctx context.Context, c *TracerConfiguration) *Tracer {
 	if t, ok := ctx.Value(tracerCtxKey{}).(*Tracer); ok && t != nil {
 		t.tracerProviderWrap.sdk = nil

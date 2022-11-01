@@ -13,10 +13,15 @@ import (
 )
 
 func testAMQP(t *testing.T) {
+	t.SkipNow()
+	if t.Skipped() {
+		return
+	}
+
 	Expect := NewWithT(t).Expect
 	ctx := context.Background()
 
-	amqp, url, cfg := brock.AMQP, "", brock.AMQPConfiguration{}
+	amqp, url, cfg := brock.AMQP, "amqps://", brock.AMQPConfiguration{}
 	load := func() (*brock.AMQPConnection, error) { return amqp.Open(url, cfg) }
 
 	conn, err := load()

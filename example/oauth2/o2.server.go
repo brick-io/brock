@@ -7,6 +7,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4/server"
 )
 
+//nolint:funlen,lll
 func oauth2Server() *server.Server {
 	x := new(instance)
 

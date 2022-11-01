@@ -9,7 +9,7 @@ issues:
 linters:
   fast: true
   enable-all: true
-  disable:
+  disable: # only the deprecated
     - deadcode
     - exhaustivestruct
     - golint
