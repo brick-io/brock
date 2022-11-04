@@ -1,4 +1,4 @@
-module go.onebrick.io/brock
+module github.com/brick-io/brock
 
 go 1.19
 

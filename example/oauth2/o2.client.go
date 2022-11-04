@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"os"
 
 	"golang.org/x/oauth2"
 
-	"go.onebrick.io/brock"
+	sdkcrypto "github.com/brick-io/brock/sdk/crypto"
+	sdkotel "github.com/brick-io/brock/sdk/otel"
 )
 
 func doclient() {
@@ -22,11 +23,12 @@ func doclient() {
 		},
 		RedirectURL: "https://example.com/oauth2/myapp/callback",
 	}
+	log := sdkotel.Log(ctx, os.Stdout)
 
 	// Redirect user to consent page to ask for permission
 	// for the scopes specified above.
-	url := conf.AuthCodeURL(btoa(brock.Crypto.Nonce((24))), oauth2.AccessTypeOnline)
-	brock.Printf("Visit the URL for the auth dialog: \n%v\n", url)
+	url := conf.AuthCodeURL(btoa(sdkcrypto.Nonce((24))), oauth2.AccessTypeOnline)
+	log.Log.Printf("Visit the URL for the auth dialog: \n%v\n", url)
 
 	// Use the authorization code that is pushed to the redirect
 	// URL. Exchange will do the handshake to retrieve the
@@ -34,12 +36,12 @@ func doclient() {
 	// conf.Client will refresh the token as necessary.
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {
-		log.Fatal(err)
+		log.Log.Fatal(err)
 	}
 
 	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
-		log.Fatal(err)
+		log.Log.Fatal(err)
 	}
 
 	client := conf.Client(ctx, tok)

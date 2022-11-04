@@ -2,12 +2,15 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
+	"os"
 	"time"
 
 	"github.com/rs/xid"
 
-	"go.onebrick.io/brock"
+	"github.com/brick-io/brock/sdk"
+	sdkotel "github.com/brick-io/brock/sdk/otel"
 )
 
 /*
@@ -25,10 +28,13 @@ then the first tx usually marking an ICO (initial coin offering)
 var (
 	_GOD = &Account{id: xid.New().Bytes(), name: "_GOD"}
 
-	ErrInsufficientFund = brock.Errorf("blockchain: insufficient fund")
+	ErrInsufficientFund = sdk.Errorf("blockchain: insufficient fund")
 )
 
 func main() {
+	ctx := context.Background()
+	log := sdkotel.Log(ctx, os.Stdout)
+
 	theBlock := &Block{id: xid.New().Bytes()}
 
 	var err error
@@ -42,43 +48,43 @@ func main() {
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: (100), src: _GOD, dst: Alex,
 	})
-	_, _ = brock.Printf(format, theBlock.record, err)
+	log.Log.Print(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: (100), src: _GOD, dst: Bayu,
 	})
-	_, _ = brock.Printf(format, theBlock.record, err)
+	log.Log.Print(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: (35), src: Alex, dst: Bayu,
 	})
-	_, _ = brock.Printf(format, theBlock.record, err)
+	log.Log.Print(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: (35), src: Alex, dst: Bayu,
 	})
-	_, _ = brock.Printf(format, theBlock.record, err)
+	log.Log.Print(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: (35), src: Alex, dst: Bayu,
 	})
-	_, _ = brock.Printf(format, theBlock.record, err)
+	log.Log.Print(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: (35), src: Bayu, dst: Chad,
 	})
-	_, _ = brock.Printf(format, theBlock.record, err)
+	log.Log.Print(format, theBlock.record, err)
 
 	theBlock, err = theBlock.Chain(&Record{
 		id: xid.New().Bytes(), ts: time.Now(),
 		amt: (35), src: Bayu, dst: Chad,
 	})
-	_, _ = brock.Printf(format, theBlock.record, err)
+	log.Log.Print(format, theBlock.record, err)
 }
 
 // Account
@@ -111,12 +117,12 @@ type Record struct {
 }
 
 func (r *Record) String() string {
-	srcLastBalance := brock.Sprint(r.srcLastBalance)
+	srcLastBalance := sdk.Sprint(r.srcLastBalance)
 	if r.src == _GOD {
 		srcLastBalance = "♾️"
 	}
 
-	return brock.Sprintf(
+	return sdk.Sprintf(
 		"%x\n[%s] %s -> %s (%d) %d -> %s",
 		r.Hash(),
 		r.ts.Format(time.RFC3339),
@@ -131,7 +137,7 @@ func (r *Record) String() string {
 func (r *Record) Hash() []byte {
 	data := []byte(r.ts.Format(time.RFC3339Nano))
 	data = append(data, r.src.id...)
-	data = append(data, []byte(brock.Sprint(r.amt))...)
+	data = append(data, []byte(sdk.Sprint(r.amt))...)
 	data = append(data, r.dst.id...)
 	h := sha256.Sum256(data)
 	r.id = h[:]

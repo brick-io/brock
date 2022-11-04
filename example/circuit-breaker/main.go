@@ -3,12 +3,13 @@ package main
 import (
 	"sync/atomic"
 
-	"go.onebrick.io/brock"
+	"github.com/brick-io/brock/sdk"
+	sdkfsm "github.com/brick-io/brock/sdk/fsm"
 )
 
 func main() {
 	cb := new(circuit_breaker)
-	cb.FSM, _ = brock.FiniteStateMachine.Create("close", cb.OnTransition, brock.FSMTransition{
+	cb.FSM, _ = sdkfsm.New("close", cb.OnTransition, sdkfsm.TransitionTable{
 		"close": {"half": "half", "open": "open"},
 		"half":  {"close": "close", "open": "open"},
 		"open":  {"half": "half", "close": "close"},
@@ -17,17 +18,17 @@ func main() {
 
 var (
 	// ErrTooManyRequests is returned when the CB state is half open and the requests count is over the cb maxRequests.
-	ErrTooManyRequests = brock.Errorf("too many requests")
+	ErrTooManyRequests = sdk.Errorf("too many requests")
 	// ErrOpenState is returned when the CB state is open.
-	ErrOpenState = brock.Errorf("circuit breaker is open")
+	ErrOpenState = sdk.Errorf("circuit breaker is open")
 )
 
 type circuit_breaker struct {
-	brock.FSM
+	sdkfsm.FSM
 	c circuit_breaker_counter
 }
 
-func (x *circuit_breaker) OnTransition(state, action, nextState string) { brock.Nop() }
+func (x *circuit_breaker) OnTransition(state, action, nextState string) { sdk.Nop() }
 
 func (x *circuit_breaker) OnBefore() error {
 	if x.FSM.CurrentState() == "open" {

@@ -10,7 +10,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4/models"
 	"github.com/go-oauth2/oauth2/v4/store"
 
-	"go.onebrick.io/brock"
+	sdksql "github.com/brick-io/brock/sdk/sql"
 )
 
 var _ = a()
@@ -25,12 +25,12 @@ func a() int {
 }
 
 type instance struct {
-	brock.SQLConn
+	sdksql.Conn
 }
 
 func (x *instance) Manager() oauth2.Manager {
-	if x.SQLConn == nil {
-		x.SQLConn, _ = brock.SQL.Open(os.Getenv("OAUTH2_DSN"))
+	if x.Conn == nil {
+		x.Conn, _ = sdksql.Open(os.Getenv("OAUTH2_DSN"))
 	}
 
 	m := manage.NewDefaultManager()

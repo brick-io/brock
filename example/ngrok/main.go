@@ -1,31 +1,37 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"io"
 	"net/http"
+	"os"
 
-	"go.onebrick.io/brock"
+	"github.com/brick-io/brock/sdk"
+	sdkotel "github.com/brick-io/brock/sdk/otel"
 )
 
 func main() {
-	nonce := brock.Sprintf("%x", Nonce((24)))
+	ctx := context.Background()
+	log := sdkotel.Log(ctx, os.Stdout)
+
+	nonce := sdk.Sprintf("%x", Nonce((24)))
 	srv := &http.Server{
 		Addr: ":8080",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
 				p, err := io.ReadAll(r.Body)
-				_, _ = brock.Println("----:----------------------------------------------")
-				_, _ = brock.Println("ERRS:", err)
-				_, _ = brock.Println("HEAD:", r.Header)
-				_, _ = brock.Println("BODY:", string(p))
+				log.Log.Print("----:----------------------------------------------")
+				log.Log.Print("ERRS:", err)
+				log.Log.Print("HEAD:", r.Header)
+				log.Log.Print("BODY:", string(p))
 			}
 			ok := http.StatusOK
 			http.Error(w, http.StatusText(ok)+"with nonce="+nonce, ok)
 		}),
 	}
-	_, _ = brock.Printf("running on %s with nonce=%s", srv.Addr, nonce)
-	_, _ = brock.Println(srv.ListenAndServe())
+	log.Log.Printf("running on %s with nonce=%s", srv.Addr, nonce)
+	log.Log.Print(srv.ListenAndServe())
 }
 
 func Nonce(n int) []byte {

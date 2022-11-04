@@ -2,18 +2,23 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"encoding/base64"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/rs/xid"
 
-	"go.onebrick.io/brock"
+	"github.com/brick-io/brock/sdk"
+	sdkcrypto "github.com/brick-io/brock/sdk/crypto"
+	sdkhttp "github.com/brick-io/brock/sdk/http"
+	sdkotel "github.com/brick-io/brock/sdk/otel"
 )
 
 func main() {
@@ -25,7 +30,7 @@ func main() {
 		GET_PUT_POST_PATCH = http.MethodGet + "," + http.MethodPut + "," + http.MethodPost + "," + http.MethodPatch
 	)
 
-	mux := brock.HTTP.Mux()
+	mux := sdkhttp.Mux()
 	mux.Handle(GET, "/", handleWrite(http.StatusOK, []byte{}))
 	mux.Handle(GET, "/favicon.ico", handleWrite(http.StatusOK, []byte{}))
 	mux.Handle(GET_POST, "/authentication", handleLogin())
@@ -47,7 +52,7 @@ func main() {
 		}
 	}))
 	mux.Handle(GET_PUT_POST_PATCH, "/me", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// _,_=brock.Printf("\n  %s %s\n", r.Method, "/me")
+		// _,_=sdk.Printf("\n  %s %s\n", r.Method, "/me")
 		switch r.Method {
 		case http.MethodGet: // render
 			handleMeGet(o2).ServeHTTP(w, r)
@@ -69,11 +74,11 @@ func main() {
 
 //nolint:gochecknoglobals
 var (
-	ErrUnimplemented = brock.Errorf("Unimplemented")
-	ErrNotFound      = brock.Errorf("Not Found")
+	ErrUnimplemented = sdk.Errorf("Unimplemented")
+	ErrNotFound      = sdk.Errorf("Not Found")
 
-	seal = brock.Crypto.NaCl.Box.SealWithSharedKey
-	open = brock.Crypto.NaCl.Box.OpenWithSharedKey
+	seal = sdkcrypto.NaCl.Box.SealWithSharedKey
+	open = sdkcrypto.NaCl.Box.OpenWithSharedKey
 
 	cookie_key_user_token = "bk_user"
 
@@ -84,19 +89,22 @@ var (
 		if p, err := atob(string(_keypair)); err == nil && len(p) == 64 {
 			pub, pvt = new([32]byte), new([32]byte)
 			_, _ = copy(pub[:], p[:32]), copy(pvt[:], p[32:])
-			key = brock.Crypto.NaCl.Box.SharedKey(pub, pvt)
+			key = sdkcrypto.NaCl.Box.SharedKey(pub, pvt)
 		}
 
 		return
 	}()
 
 	_ = func() struct{} {
-		_, _ = brock.Println("KEYPAIR: ", btoa(append(pub[:], pvt[:]...)))
-		_, _ = brock.Println("CLIENT ID: ", pub_client_b64)
-		_, _ = brock.Println("CLIENT SE: ", pvt_client_b64)
+		ctx := context.Background()
+		log := sdkotel.Log(ctx, os.Stdout)
+
+		log.Log.Print("KEYPAIR: ", btoa(append(pub[:], pvt[:]...)))
+		log.Log.Print("CLIENT ID: ", pub_client_b64)
+		log.Log.Print("CLIENT SE: ", pvt_client_b64)
 		var p []byte
 		_ = Cipher{&p}.UnmarshalJSON([]byte(pvt_client_b64))
-		_, _ = brock.Println("CLIENT OK: ", bytes.Equal(expand(clientID), p))
+		log.Log.Print("CLIENT OK: ", bytes.Equal(expand(clientID), p))
 
 		return struct{}{}
 	}()
@@ -117,9 +125,9 @@ var (
 func expand(id xid.ID) []byte {
 	p := clientID.Bytes()
 	p = append(p, clientID.Machine()...)
-	p = append(p, []byte(brock.Sprint(clientID.Pid()))...)
+	p = append(p, []byte(sdk.Sprint(clientID.Pid()))...)
 	p = append(p, []byte(clientID.Time().String())...)
-	p = append(p, []byte(brock.Sprint(clientID.Counter()))...)
+	p = append(p, []byte(sdk.Sprint(clientID.Counter()))...)
 
 	return p
 }
@@ -128,7 +136,7 @@ func expand(id xid.ID) []byte {
 func handleConsent() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
-		// _,_=brock.Println("\n  handleConsent FORM", err, r.Form)
+		// _,_=sdk.Println("\n  handleConsent FORM", err, r.Form)
 		_ = err
 
 		q, consent := r.URL.Query(), r.Form.Get("consent")
@@ -144,7 +152,7 @@ func handleConsent() http.Handler {
 			next = "/"
 		}
 		_ = err
-		// _,_=brock.Println("\n  next:", next)
+		// _,_=sdk.Println("\n  next:", next)
 		if consent == "agree" || consent == "cancel" {
 			http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 
@@ -175,7 +183,7 @@ func handleConsent() http.Handler {
 		// 	if len(a) > 0 && a.Get("next") != "" {
 		// 		action := "?a=" + Cipher{"next:" + r.URL.String()}.String()
 		// 		http.Redirect(w, r, "/authentication"+action, http.StatusTemporaryRedirect)
-		// 		// _,_=brock.Println("\n  handleConsent", err, a.Get("next"))
+		// 		// _,_=sdk.Println("\n  handleConsent", err, a.Get("next"))
 		// 		return
 		// 	}
 		// }
@@ -196,7 +204,7 @@ func handleLogin() http.Handler {
 		if u, err := getUser(r); err != nil || u.ID == "" {
 			if a, err := getAction(r.URL.Query().Get("a")); len(a) > 0 && a.Get("next") != "" {
 				_ = err
-				// _,_=brock.Println("\n  handleLogin", err, a.Get("next"))
+				// _,_=sdk.Println("\n  handleLogin", err, a.Get("next"))
 			}
 		}
 		msg := []byte("$message")
@@ -215,7 +223,7 @@ func handleLogin() http.Handler {
 		case http.MethodPost:
 			err := r.ParseForm()
 			_ = err
-			// _,_=brock.Println("\n  handleLogin FORM", err, r.Form)
+			// _,_=sdk.Println("\n  handleLogin FORM", err, r.Form)
 			un, pw := r.Form.Get("username"), r.Form.Get("password")
 			if len(un) < 1 || len(pw) < 1 {
 				handleWrite(http.StatusBadRequest, text1).ServeHTTP(w, r)
@@ -309,13 +317,13 @@ func getUser(r *http.Request) (u User, err error) {
 	if c, err = r.Cookie(cookie_key_user_token); err != nil {
 		//
 	} else if c.Expires.After(now) {
-		err = brock.Errorf("expire")
+		err = sdk.Errorf("expire")
 	} else if c.Value == "" {
-		err = brock.Errorf("empty")
+		err = sdk.Errorf("empty")
 	} else {
 		err = Cipher{&u}.UnmarshalJSON([]byte(c.Value))
 	}
-	// _,_=brock.Printf("\n  getUser err:[%s] u:[%#v]\n", err, u)
+	// _,_=sdk.Printf("\n  getUser err:[%s] u:[%#v]\n", err, u)
 	return
 }
 
@@ -333,7 +341,7 @@ func (c Cipher) String() string {
 }
 
 func (c Cipher) MarshalJSON() ([]byte, error) {
-	p, err := brock.JSON.Marshal(c.any)
+	p, err := sdk.JSON.Marshal(c.any)
 
 	return []byte(btoa(seal(p, key))), err
 }
@@ -341,7 +349,7 @@ func (c Cipher) MarshalJSON() ([]byte, error) {
 func (c Cipher) UnmarshalJSON(p []byte) error {
 	p, _ = atob(string(p))
 	if p, ok := open(p, key); ok && len(p) > 0 {
-		return brock.JSON.Unmarshal(p, c.any)
+		return sdk.JSON.Unmarshal(p, c.any)
 	}
 
 	return nil

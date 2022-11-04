@@ -29,7 +29,7 @@ linters-settings:
       - default
       - blank
       - dot
-      - prefix(go.onebrick.io)
+      - prefix(github.com/brick-io/brock)
 
 output:
   print-issued-lines: true

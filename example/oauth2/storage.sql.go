@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-oauth2/oauth2/v4"
 
-	"go.onebrick.io/brock"
+	sdksql "github.com/brick-io/brock/sdk/sql"
 )
 
 func (x _storage_sql) GetByID(ctx context.Context, id string) (oauth2.ClientInfo, error) {
@@ -49,14 +49,14 @@ var (
 
 // _storage_sql implements both oauth2.ClientStore and oauth2.TokenStore.
 type _storage_sql struct {
-	brock.SQLConn
+	sdksql.Conn
 
 	TablenameClient string
 	TablenameToken  string
 }
 
 // StorageSQL implements both oauth2.ClientStore and oauth2.TokenStore.
-func (x *instance) StorageSQL() _storage_sql { return _storage_sql{SQLConn: x.SQLConn} }
+func (x *instance) StorageSQL() _storage_sql { return _storage_sql{Conn: x.Conn} }
 
 // =============================================================================
 // Client Storage
@@ -95,7 +95,7 @@ func (x _storage_sql) TokenRead(ctx context.Context, code, access, refresh strin
 	}
 
 	info, t, v, cre, exp, now := tokenInfo{}, 0, "", time.Time{}, time.Time{}, time.Now()
-	err := brock.SQL.Box.Query(x.QueryContext(ctx, _sql_select_token, c, a, r)).Scan(func(i int) (pointers []any) {
+	err := sdksql.Wrap.Query(x.QueryContext(ctx, _sql_select_token, c, a, r)).Scan(func(i int) (pointers []any) {
 		return []any{
 			&info.ID,
 			&info.Token.ClientID,
