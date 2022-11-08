@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net/http"
 	"os"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 
+	"github.com/brick-io/brock/sdk"
 	sdkotel "github.com/brick-io/brock/sdk/otel"
 )
 
@@ -74,6 +76,7 @@ func test_tracer(ctx context.Context, t *testing.T) {
 	Expect(trc).To(Equal(trc2))
 
 	count := 3
+	err := sdk.Errorf("some error")
 	ctx, span := trc.Start(ctx, "first")
 
 	for i := 0; i < count; i++ {
@@ -86,6 +89,17 @@ func test_tracer(ctx context.Context, t *testing.T) {
 	for i := 0; i < count; i++ {
 		<-time.After(time.Second * time.Duration(i))
 	}
+
+	span.AddEvent("second event")
+	span.SetAttributes(sdkotel.Attr.KeyValueHTTPRequest(new(http.Request))...)
+
+	if err != nil {
+		span.SetStatus(sdkotel.Code.StatusError(), err.Error()+": [error on this func]")
+		span.RecordError(err)
+	} else {
+		span.SetStatus(sdkotel.Code.StatusOk(), "")
+	}
+
 	span.End()
 
 	_, _ = ctx, span
