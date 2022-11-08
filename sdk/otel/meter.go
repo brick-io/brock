@@ -41,9 +41,11 @@ func Metric(ctx context.Context, c *MeterConfiguration) *Meter {
 	opts := make([]controller.Option, 0)
 	promConfig := prometheus.Config{}
 
+	if c == nil {
+		c = new(MeterConfiguration)
+	}
+
 	switch {
-	case c == nil:
-		return nil
 	case c.OTLP.GRPC.URL != "":
 		opts = append(opts, controller.WithExporter(otlpmetric.NewUnstarted(
 			otlpmetricgrpc.NewClient(

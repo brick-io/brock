@@ -58,6 +58,10 @@ func Trace(ctx context.Context, c *TracerConfiguration) *Tracer {
 	spanExporter := func() sdk_trace.SpanExporter {
 		var spanExporter sdk_trace.SpanExporter
 
+		if c == nil {
+			c = new(TracerConfiguration)
+		}
+
 		switch {
 		case c.OTLP.GRPC.URL != "":
 			spanExporter = otlptrace.NewUnstarted(
