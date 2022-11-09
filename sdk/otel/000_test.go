@@ -68,7 +68,7 @@ func test_tracer(ctx context.Context, t *testing.T) {
 	Expect := NewWithT(t).Expect
 
 	cfg := &sdkotel.TracerConfiguration{}
-	cfg.OTLP.GRPC.URL = "0.0.0.0"
+	cfg.OTLP.GRPC.Endpoint = "0.0.0.0"
 
 	trc := sdkotel.Trace(ctx, cfg)
 	ctx = trc.WithContext(ctx)

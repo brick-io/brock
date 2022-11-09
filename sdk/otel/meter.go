@@ -33,7 +33,7 @@ type MeterConfiguration struct {
 	}
 }
 
-func Metric(ctx context.Context, c *MeterConfiguration) *Meter {
+func Metric(ctx context.Context, c ...*MeterConfiguration) *Meter {
 	if m, ok := ctx.Value(meterCtxKey{}).(*Meter); ok && m != nil {
 		return m
 	}
@@ -41,24 +41,29 @@ func Metric(ctx context.Context, c *MeterConfiguration) *Meter {
 	opts := make([]controller.Option, 0)
 	promConfig := prometheus.Config{}
 
-	if c == nil {
-		c = new(MeterConfiguration)
+	if len(c) < 1 {
+		c = append(c, nil)
+	}
+
+	c0 := c[0]
+	if c0 == nil {
+		c0 = new(MeterConfiguration)
 	}
 
 	switch {
-	case c.OTLP.GRPC.URL != "":
+	case c0.OTLP.GRPC.URL != "":
 		opts = append(opts, controller.WithExporter(otlpmetric.NewUnstarted(
 			otlpmetricgrpc.NewClient(
 				otlpmetricgrpc.WithInsecure(),
-				otlpmetricgrpc.WithEndpoint(c.OTLP.GRPC.URL),
+				otlpmetricgrpc.WithEndpoint(c0.OTLP.GRPC.URL),
 				otlpmetricgrpc.WithReconnectionPeriod((10)*time.Second),
 			),
 		)))
-	case c.OTLP.HTTP.URL != "":
+	case c0.OTLP.HTTP.URL != "":
 		opts = append(opts, controller.WithExporter(otlpmetric.NewUnstarted(
 			otlpmetrichttp.NewClient(
 				otlpmetrichttp.WithInsecure(),
-				otlpmetrichttp.WithEndpoint(c.OTLP.HTTP.URL),
+				otlpmetrichttp.WithEndpoint(c0.OTLP.HTTP.URL),
 				otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
 			),
 		)))
@@ -77,9 +82,9 @@ func Metric(ctx context.Context, c *MeterConfiguration) *Meter {
 
 	var mp metric.MeterProvider = ctrl
 
-	if c.Prometheus.HTTPHandlerCallback != nil {
+	if c0.Prometheus.HTTPHandlerCallback != nil {
 		if exporter, err := prometheus.New(promConfig, ctrl); err == nil && exporter != nil {
-			c.Prometheus.HTTPHandlerCallback(exporter)
+			c0.Prometheus.HTTPHandlerCallback(exporter)
 
 			mp = exporter.MeterProvider()
 		}
@@ -87,7 +92,7 @@ func Metric(ctx context.Context, c *MeterConfiguration) *Meter {
 
 	global.SetMeterProvider(mp)
 
-	return &Meter{mp.Meter(c.Name), nil}
+	return &Meter{mp.Meter(c0.Name), nil}
 }
 
 type meterCtxKey struct{}

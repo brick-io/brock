@@ -5,6 +5,8 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"strings"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -16,6 +18,8 @@ import (
 	sdk_trace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/brick-io/brock/sdk"
 )
 
 // -----------------------------------------------------------------------------
@@ -26,15 +30,79 @@ type TracerConfiguration struct {
 	Name   string
 	Jaeger struct{ URL string }
 	OTLP   struct {
-		GRPC struct{ URL string }
-		HTTP struct{ URL string }
+		GRPC struct {
+			Compression        string
+			Endpoint           string
+			Headers            map[string]string
+			ReconnectionPeriod time.Duration
+			Retry              struct {
+				// Enabled indicates whether to not retry sending batches in case of
+				// export failure.
+				Enabled bool
+				// InitialInterval the time to wait after the first failure before
+				// retrying.
+				InitialInterval time.Duration
+				// MaxInterval is the upper bound on backoff interval. Once this value is
+				// reached the delay between consecutive retries will always be
+				// `MaxInterval`.
+				MaxInterval time.Duration
+				// MaxElapsedTime is the maximum amount of time (including retries) spent
+				// trying to send a request/batch.  Once this value is reached, the data
+				// is discarded.
+				MaxElapsedTime time.Duration
+			}
+			// Timeout sets the max amount of time a client will attempt to export a
+			// batch of spans. This takes precedence over any retry settings defined with
+			// WithRetry, once this time limit has been reached the export is abandoned
+			// and the batch of spans is dropped.
+			//
+			// If unset, the default timeout will be set to 10 seconds.
+			Timeout time.Duration
+		}
+		HTTP struct {
+			Compression string
+			Endpoint    string
+			Headers     map[string]string
+			Retry       struct {
+				// Enabled indicates whether to not retry sending batches in case of
+				// export failure.
+				Enabled bool
+				// InitialInterval the time to wait after the first failure before
+				// retrying.
+				InitialInterval time.Duration
+				// MaxInterval is the upper bound on backoff interval. Once this value is
+				// reached the delay between consecutive retries will always be
+				// `MaxInterval`.
+				MaxInterval time.Duration
+				// MaxElapsedTime is the maximum amount of time (including retries) spent
+				// trying to send a request/batch.  Once this value is reached, the data
+				// is discarded.
+				MaxElapsedTime time.Duration
+			}
+			// Timeout tells the driver the max waiting time for the backend to process
+			// each spans batch.  If unset, the default will be 10 seconds.
+			Timeout time.Duration
+
+			// URLPath allows one to override the default URL path used
+			// for sending traces. If unset, default ("/v1/traces") will be used.
+			URLPath string
+		}
 	}
 }
 
 //nolint:funlen
-func Trace(ctx context.Context, c *TracerConfiguration) *Tracer {
+func Trace(ctx context.Context, c ...*TracerConfiguration) *Tracer {
 	if t, ok := ctx.Value(tracerCtxKey{}).(*Tracer); ok && t != nil {
 		return t
+	}
+
+	if len(c) < 1 {
+		c = append(c, nil)
+	}
+
+	c0 := c[0]
+	if c0 == nil {
+		c0 = new(TracerConfiguration)
 	}
 
 	netHostName := func() string {
@@ -58,31 +126,16 @@ func Trace(ctx context.Context, c *TracerConfiguration) *Tracer {
 	spanExporter := func() sdk_trace.SpanExporter {
 		var spanExporter sdk_trace.SpanExporter
 
-		if c == nil {
-			c = new(TracerConfiguration)
-		}
-
 		switch {
-		case c.OTLP.GRPC.URL != "":
-			spanExporter = otlptrace.NewUnstarted(
-				otlptracegrpc.NewClient(
-					otlptracegrpc.WithInsecure(),
-					otlptracegrpc.WithEndpoint(c.OTLP.GRPC.URL),
-				),
-			)
-		case c.OTLP.HTTP.URL != "":
-			spanExporter = otlptrace.NewUnstarted(
-				otlptracehttp.NewClient(
-					otlptracehttp.WithInsecure(),
-					otlptracehttp.WithEndpoint(c.OTLP.HTTP.URL),
-					otlptracehttp.WithCompression(otlptracehttp.GzipCompression),
-				),
-			)
-		case c.Jaeger.URL != "":
+		case c0.OTLP.GRPC.Endpoint != "":
+			spanExporter = otlptrace.NewUnstarted(otlptraceClientGRPC(c0))
+		case c0.OTLP.HTTP.Endpoint != "":
+			spanExporter = otlptrace.NewUnstarted(otlptraceClientHTTP(c0))
+		case c0.Jaeger.URL != "":
 			spanExporter, _ = jaeger.New(
 				jaeger.WithCollectorEndpoint(
 					jaeger.WithEndpoint(
-						c.Jaeger.URL,
+						c0.Jaeger.URL,
 					),
 				),
 			)
@@ -112,7 +165,7 @@ func Trace(ctx context.Context, c *TracerConfiguration) *Tracer {
 		semconv.SchemaURL,
 		semconv.TelemetrySDKLanguageGo,
 		semconv.HostArchKey.String(runtime.GOARCH),
-		semconv.ServiceNameKey.String(c.Name),
+		semconv.ServiceNameKey.String(c0.Name),
 		semconv.NetHostNameKey.String(netHostName),
 		semconv.NetHostIPKey.StringSlice(netHostIPList),
 		semconv.OSNameKey.String(runtime.GOOS),
@@ -129,7 +182,7 @@ func Trace(ctx context.Context, c *TracerConfiguration) *Tracer {
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 	otel.SetTracerProvider(tp)
 
-	return &Tracer{tp.Tracer(c.Name), tracerProviderWrap{tp}}
+	return &Tracer{tp.Tracer(c0.Name), tracerProviderWrap{tp}}
 }
 
 type tracerCtxKey struct{}
@@ -177,4 +230,62 @@ func (t *Tracer) WithContext(ctx context.Context) context.Context {
 	}
 
 	return context.WithValue(ctx, tracerCtxKey{}, t)
+}
+
+func otlptraceClientGRPC(c *TracerConfiguration) otlptrace.Client {
+	opts := make([]otlptracegrpc.Option, 0)
+
+	return otlptracegrpc.NewClient(append(opts,
+		otlptracegrpc.WithCompressor(c.OTLP.GRPC.Compression),
+		otlptracegrpc.WithEndpoint(c.OTLP.GRPC.Endpoint),
+		otlptracegrpc.WithDialOption(),
+		otlptracegrpc.WithHeaders(c.OTLP.GRPC.Headers),
+		otlptracegrpc.WithReconnectionPeriod(c.OTLP.GRPC.ReconnectionPeriod),
+		otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{
+			Enabled:         c.OTLP.GRPC.Retry.Enabled,
+			InitialInterval: c.OTLP.GRPC.Retry.InitialInterval,
+			MaxInterval:     c.OTLP.GRPC.Retry.MaxInterval,
+			MaxElapsedTime:  c.OTLP.GRPC.Retry.MaxElapsedTime,
+		}),
+		otlptracegrpc.WithTimeout(c.OTLP.GRPC.Timeout),
+	)...)
+}
+
+func otlptraceClientHTTP(c *TracerConfiguration) otlptrace.Client {
+	opts := make([]otlptracehttp.Option, 0)
+
+	for k := range c.OTLP.HTTP.Headers {
+		switch strings.ToLower(k) {
+		case
+			"content-length",
+			"content-encoding",
+			"content-type":
+			delete(c.OTLP.HTTP.Headers, k)
+		}
+	}
+
+	switch {
+	case c.OTLP.HTTP.Timeout == 0:
+		c.OTLP.HTTP.Timeout = (10) * time.Second
+	case c.OTLP.HTTP.URLPath == "":
+		c.OTLP.HTTP.URLPath = "v1/traces"
+	}
+
+	return otlptracehttp.NewClient(append(opts,
+		otlptracehttp.WithCompression(sdk.IfThenElse(
+			strings.ToLower(c.OTLP.HTTP.Compression) == "gzip",
+			otlptracehttp.GzipCompression,
+			otlptracehttp.NoCompression,
+		)),
+		otlptracehttp.WithEndpoint(c.OTLP.HTTP.Endpoint),
+		otlptracehttp.WithHeaders(c.OTLP.HTTP.Headers),
+		otlptracehttp.WithRetry(otlptracehttp.RetryConfig{
+			Enabled:         c.OTLP.HTTP.Retry.Enabled,
+			InitialInterval: c.OTLP.HTTP.Retry.InitialInterval,
+			MaxInterval:     c.OTLP.HTTP.Retry.MaxInterval,
+			MaxElapsedTime:  c.OTLP.HTTP.Retry.MaxElapsedTime,
+		}),
+		otlptracehttp.WithTimeout(c.OTLP.HTTP.Timeout),
+		otlptracehttp.WithURLPath(c.OTLP.HTTP.URLPath),
+	)...)
 }
