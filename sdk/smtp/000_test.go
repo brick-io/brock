@@ -2,6 +2,8 @@
 package smtp_test
 
 import (
+	"os"
+	"strconv"
 	"testing"
 
 	smtp "github.com/brick-io/brock/sdk/smtp"
@@ -9,12 +11,13 @@ import (
 
 func TestSendEmail(t *testing.T) {
 	// Create a mock SMTPConfiguration
+	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	mockSMTPConfig := smtp.SMTPConfiguration{
-		Host:         "mock",
-		Port:         0,
-		AuthUsername: "mock",
-		AuthPassword: "mock",
-		Sender:       "mock",
+		Host:         os.Getenv("SMTP_HOST"),
+		Port:         port,
+		AuthUsername: os.Getenv("SMTP_USERNAME"),
+		AuthPassword: os.Getenv("SMTP_PASSWORD"),
+		Sender:       "no-reply@onebrick.io",
 	}
 
 	// Create a mock recipient, cc, subject, body and attachmentPath strings
