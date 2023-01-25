@@ -2,20 +2,20 @@ package sdkotel
 
 import (
 	"context"
-	"net/http"
+	"log"
 	"time"
 
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
-	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
-	aggregator "go.opentelemetry.io/otel/sdk/metric/aggregator/histogram"
+	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/metric/instrument/syncint64"
 	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
-	aggregation "go.opentelemetry.io/otel/sdk/metric/export/aggregation"
 	processor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
-	selector "go.opentelemetry.io/otel/sdk/metric/selector/simple"
+	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 // -----------------------------------------------------------------------------
@@ -23,23 +23,27 @@ import (
 // -----------------------------------------------------------------------------
 
 type MeterConfiguration struct {
-	Name       string
-	Prometheus struct {
-		HTTPHandlerCallback func(http.Handler)
-	}
+	Name string
 	OTLP struct {
-		GRPC struct{ URL string }
-		HTTP struct{ URL string }
+		ServiceNameKey         string
+		ServiceVersionKey      string
+		TelemetrySDKVersionKey string
+		CollectPeriod          time.Duration
+		GRPC                   struct {
+			URL     string
+			Timeout time.Duration
+		}
+		HTTP struct {
+			URL     string
+			Timeout time.Duration
+		}
 	}
 }
 
-func Metric(ctx context.Context, c ...*MeterConfiguration) *Meter {
+func MetricMeter(ctx context.Context, c ...*MeterConfiguration) *Meter {
 	if m, ok := ctx.Value(meterCtxKey{}).(*Meter); ok && m != nil {
 		return m
 	}
-
-	opts := make([]controller.Option, 0)
-	promConfig := prometheus.Config{}
 
 	if len(c) < 1 {
 		c = append(c, nil)
@@ -50,49 +54,51 @@ func Metric(ctx context.Context, c ...*MeterConfiguration) *Meter {
 		c0 = new(MeterConfiguration)
 	}
 
+	attr := []attribute.KeyValue{
+		semconv.ServiceNameKey.String(c0.OTLP.ServiceNameKey),
+		semconv.ServiceVersionKey.String(c0.OTLP.ServiceVersionKey),
+		semconv.TelemetrySDKVersionKey.String(c0.OTLP.TelemetrySDKVersionKey),
+		semconv.TelemetrySDKLanguageGo,
+	}
+
+	res0urce, _ := resource.New(ctx, resource.WithAttributes(attr...))
+
+	var metricOpts []otlpmetricgrpc.Option
+
 	switch {
 	case c0.OTLP.GRPC.URL != "":
-		opts = append(opts, controller.WithExporter(otlpmetric.NewUnstarted(
-			otlpmetricgrpc.NewClient(
-				otlpmetricgrpc.WithInsecure(),
-				otlpmetricgrpc.WithEndpoint(c0.OTLP.GRPC.URL),
-				otlpmetricgrpc.WithReconnectionPeriod((10)*time.Second),
-			),
-		)))
+		metricOpts = []otlpmetricgrpc.Option{otlpmetricgrpc.WithTimeout(c0.OTLP.GRPC.Timeout)}
+		metricOpts = append(metricOpts, otlpmetricgrpc.WithInsecure())
+		metricOpts = append(metricOpts, otlpmetricgrpc.WithEndpoint(c0.OTLP.GRPC.URL))
 	case c0.OTLP.HTTP.URL != "":
-		opts = append(opts, controller.WithExporter(otlpmetric.NewUnstarted(
-			otlpmetrichttp.NewClient(
-				otlpmetrichttp.WithInsecure(),
-				otlpmetrichttp.WithEndpoint(c0.OTLP.HTTP.URL),
-				otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
-			),
-		)))
+		metricOpts = []otlpmetricgrpc.Option{otlpmetricgrpc.WithTimeout(c0.OTLP.HTTP.Timeout)}
+		metricOpts = append(metricOpts, otlpmetricgrpc.WithInsecure())
+		metricOpts = append(metricOpts, otlpmetricgrpc.WithEndpoint(c0.OTLP.HTTP.URL))
 	}
 
-	ctrl := controller.New(
+	metricExporter, err := otlpmetricgrpc.New(ctx, metricOpts...)
+	if err != nil {
+		log.Fatalf("%s: %v", "failed to create exporter", err)
+	}
+
+	pusher := controller.New(
 		processor.NewFactory(
-			selector.NewWithHistogramDistribution(
-				aggregator.WithExplicitBoundaries(promConfig.DefaultHistogramBoundaries),
-			),
-			aggregation.CumulativeTemporalitySelector(),
-			processor.WithMemory(true),
+			simple.NewWithHistogramDistribution(),
+			metricExporter,
 		),
-		opts...,
+		controller.WithResource(res0urce),
+		controller.WithExporter(metricExporter),
+		controller.WithCollectPeriod(c0.OTLP.CollectPeriod),
 	)
 
-	var mp metric.MeterProvider = ctrl
-
-	if c0.Prometheus.HTTPHandlerCallback != nil {
-		if exporter, err := prometheus.New(promConfig, ctrl); err == nil && exporter != nil {
-			c0.Prometheus.HTTPHandlerCallback(exporter)
-
-			mp = exporter.MeterProvider()
-		}
+	err = pusher.Start(ctx)
+	if err != nil {
+		log.Fatalf("%s: %v", "failed to start the pusher", err)
 	}
 
-	global.SetMeterProvider(mp)
+	global.SetMeterProvider(pusher)
 
-	return &Meter{mp.Meter(c0.Name), nil}
+	return &Meter{global.Meter("io.opentelemetry.metrics.boiva"), nil}
 }
 
 type meterCtxKey struct{}
@@ -100,6 +106,23 @@ type meterCtxKey struct{}
 type Meter struct {
 	metric.Meter
 	_ any
+}
+
+type MetricConfiguration struct {
+	MetricName        string
+	MetricDescription string
+}
+
+func (cfg MetricConfiguration) MetricCounter(ctx context.Context, m *Meter) (syncint64.Counter, error) {
+	metric, err := m.SyncInt64().Counter(
+		cfg.MetricName,
+		instrument.WithDescription(cfg.MetricDescription),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return metric, err
 }
 
 func (m *Meter) WithContext(ctx context.Context) context.Context {

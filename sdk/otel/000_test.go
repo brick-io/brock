@@ -51,9 +51,9 @@ func test_meter(ctx context.Context, t *testing.T) {
 	cfg := &sdkotel.MeterConfiguration{}
 	cfg.OTLP.GRPC.URL = "0.0.0.0"
 
-	mtr := sdkotel.Metric(ctx, cfg)
+	mtr := sdkotel.MetricMeter(ctx, cfg)
 	ctx = mtr.WithContext(ctx)
-	mtr2 := sdkotel.Metric(ctx, nil)
+	mtr2 := sdkotel.MetricMeter(ctx, nil)
 	Expect(mtr).To(Equal(mtr2))
 
 	g1, err := mtr.AsyncInt64().Gauge("gauge-1")
