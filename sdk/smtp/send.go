@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/go-mail/mail"
+	"golang.org/x/net/html"
 )
 
 //nolint:gochecknoglobals
@@ -17,14 +18,17 @@ type SMTPConfiguration struct {
 	Sender       string
 }
 
-func (c SMTPConfiguration) SendEmail(recipient, cc []string, subject, body, attachmentPath string, useHTML bool) error {
+func (c SMTPConfiguration) SendEmail(recipient, cc []string, subject, body, attachmentPath string) error {
 	m := mail.NewMessage()
 	m.SetHeader("From", c.Sender)
 	m.SetHeader("To", strings.Join(recipient, ","))
-	m.SetHeader("Cc", strings.Join(cc, ","))
 	m.SetHeader("Subject", subject)
 
-	if useHTML {
+	if len(cc) > 0 {
+		m.SetHeader("Cc", strings.Join(cc, ","))
+	}
+
+	if isHTML(body) {
 		m.SetBody("text/html", body)
 	} else {
 		m.SetBody("text/plain", body)
@@ -37,4 +41,10 @@ func (c SMTPConfiguration) SendEmail(recipient, cc []string, subject, body, atta
 	d := mail.NewDialer(c.Host, c.Port, c.AuthUsername, c.AuthPassword)
 
 	return d.DialAndSend(m)
+}
+
+func isHTML(s string) bool {
+	_, err := html.Parse(strings.NewReader(s))
+
+	return err == nil
 }

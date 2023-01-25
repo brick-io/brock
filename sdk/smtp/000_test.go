@@ -25,17 +25,18 @@ func TestSendEmail(t *testing.T) {
 	cc := []string{"cc@example.com"}
 	subject := "Test Email"
 	body := "This is a test email"
-	attachmentPath := ""
+	bodyHTML := "This is a test email"
+	attachmentPath := "<html><body>This is a test email<body></html>"
 
 	// Call SendEmail with the mock data and useHTML set to true
-	err := mockSMTPConfig.SendEmail(recipient, cc, subject, body, attachmentPath, true)
+	err := mockSMTPConfig.SendEmail(recipient, cc, subject, bodyHTML, attachmentPath)
 	// Assert that no error was returned
 	if err != nil {
 		t.Errorf("Expected no error but got %v", err)
 	}
 
 	// Call SendEmail with the mock data and useHTML set to false
-	err = mockSMTPConfig.SendEmail(recipient, cc, subject, body, attachmentPath, false)
+	err = mockSMTPConfig.SendEmail(recipient, cc, subject, body, attachmentPath)
 
 	// Assert that no error was returned
 	if err != nil {
@@ -43,7 +44,7 @@ func TestSendEmail(t *testing.T) {
 	}
 
 	// Call SendEmail with an invalid attachment path and useHTML set to true
-	err = mockSMTPConfig.SendEmail(recipient, cc, subject, body, "/invalid/path/to/attachment", true)
+	err = mockSMTPConfig.SendEmail(recipient, cc, subject, bodyHTML, "/invalid/path/to/attachment")
 
 	// Assert that an error was returned
 	if err == nil {
