@@ -10,11 +10,11 @@ import (
 func TestSendEmail(t *testing.T) {
 	// Create a mock SMTPConfiguration
 	mockSMTPConfig := smtp.SMTPConfiguration{
-		Host:         "",
-		Port:         2525,
-		AuthUsername: "",
-		AuthPassword: "",
-		Sender:       "",
+		Host:         "mock",
+		Port:         0,
+		AuthUsername: "mock",
+		AuthPassword: "mock",
+		Sender:       "mock",
 	}
 
 	// Create a mock recipient, cc, subject, body and attachmentPath strings
