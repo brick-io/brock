@@ -28,6 +28,7 @@ type MeterConfiguration struct {
 		ServiceNameKey         string
 		ServiceVersionKey      string
 		TelemetrySDKVersionKey string
+		InstrumentationName    string
 		CollectPeriod          time.Duration
 		GRPC                   struct {
 			URL     string
@@ -98,7 +99,7 @@ func MetricMeter(ctx context.Context, c ...*MeterConfiguration) *Meter {
 
 	global.SetMeterProvider(pusher)
 
-	return &Meter{global.Meter("io.opentelemetry.metrics.boiva"), nil}
+	return &Meter{global.Meter(c0.OTLP.InstrumentationName), nil}
 }
 
 type meterCtxKey struct{}
